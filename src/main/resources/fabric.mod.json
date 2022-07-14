@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "potionrecipes",
+  "version": "${version}",
+
+  "name": "StructurePlacerAPI",
+  "description": "Simply simple API to spawn NBT structures in your code, maybe after the use of an item or something.",
+  "authors": [
+    "Emafire003!"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Emafire003/StructurePlacerAPI/",
+    "sources": "https://github.com/Emafire003/StructurePlacerAPI/",
+    "issues": "https://github.com/Emafire003StructurePlacerAPI/issues"
+  },
+
+  "license": "CC0-1.0",
+  "icon": "assets/structureplacerapi/icon.png",
+
+  "environment": "*",
+  "mixins": [
+    "structureplacerapi.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.13.3",
+    "java": ">=16"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
