@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "potionrecipes",
+  "id": "structureplacerapi",
   "version": "${version}",
 
   "name": "StructurePlacerAPI",
