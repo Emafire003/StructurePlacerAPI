@@ -57,12 +57,20 @@ StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos
 - The **`integrity`** parameter is pretty intresting, since it is a float value between 0f and 1f which will deteremine how much the structure will be run-down. If set to a value below 1f some of the blocks will be removed upon generation
 - Finally, the **`offset`** parameter is another BlockPos that could be useful to reposition the structure under an entity's feet or something.
 
+
 ### And finally... the hard part.
 Now, you have to actually place the structure. Pay attention, it's a very tricky bit. You have just created a `StructurePlacerAPI placer = new StructurePlacerAPI(things up there)`, and to spawn it you will have to do this:
 ```java
 placer.loadStructure();
 ```
 Yeah ok it's not that difficult. You just have to run that tho, not the `.place` method directly, since the load will also check for the existance of said structure before spawning it.
+
+#### Restoring the old terrein after some times
+Starting from version `1.1.0` you can also use: 
+```java
+placer.loadAndRestoreStructure(int restore_ticks);
+```
+to supply an amount of ticks ( 1 seconds = 20 ticks ) after which the old terrain will be restored.
 
 ### Example
 An example of this could be the one you find insde the [LightWithin](https://github.com/Emafire003/LightWithin) mod(whihc btw, you should check out): 
