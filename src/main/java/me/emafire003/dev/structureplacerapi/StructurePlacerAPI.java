@@ -1,13 +1,10 @@
 package me.emafire003.dev.structureplacerapi;
 
 import com.google.common.collect.Lists;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
@@ -21,6 +18,8 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.EmptyBlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -37,6 +36,8 @@ public class StructurePlacerAPI {
     private boolean ignoreEntities;
     private float integrity;
     private BlockPos offset;
+
+    private Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
 
     /**
      * With this you can create placer object which will spawn
@@ -194,8 +195,6 @@ public class StructurePlacerAPI {
             } catch (InvalidIdentifierException var6) {
                 return false;
             }
-            //It may be needed for the restoration
-            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
             return optional.isPresent() && this.place(optional.get());
         } else {
@@ -237,8 +236,6 @@ public class StructurePlacerAPI {
     }
 
 
-
-
     /**Use this method to load the structure into the world and
      * spawn it. You can check to see if the placing was succesful.
      *
@@ -249,11 +246,26 @@ public class StructurePlacerAPI {
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
      */
     public boolean loadAndRestoreStructure(int restore_ticks) {
-        if(!this.world.isClient()){
-            saveFromWorld(this.world, this.blockPos, size, null);
-            scheduleReplacement(restore_ticks);
+        if (this.templateName != null) {
+            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+            Optional<StructureTemplate> optional;
+            try {
+                optional = structureTemplateManager.getTemplate(this.templateName);
+            } catch (InvalidIdentifierException var6) {
+                return false;
+            }
+            //It may be needed for the restoration
+            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
+
+            if(!this.world.isClient()){
+                LOGGER.info("The size got: " + size);
+                saveFromWorld(this.world, this.blockPos, size, null);
+                scheduleReplacement(restore_ticks);
+            }
+            return optional.isPresent() && this.place(optional.get());
+        } else {
+            return false;
         }
-        return loadStructure();
     }
 
     private int tickCounter = 0;
@@ -263,110 +275,58 @@ public class StructurePlacerAPI {
      *
      * TO CALL SERVER SIDE ONLY*/
     private void scheduleReplacement(int ticks){
-       ServerTickEvents.END_SERVER_TICK.register((server -> {
-           if(tickCounter == -1){
-               return;
-           }
+        ServerTickEvents.END_SERVER_TICK.register((server -> {
+            if(tickCounter == -1){
+                return;
+            }
+            if(tickCounter == ticks){
+                for(StructureTemplate.StructureBlockInfo info : blockInfoList){
+                    //TODO remove
+                    LOGGER.info("[====PLACING STUFF====] The block info got: " + info.toString());
+                    world.setBlockState(info.pos(), info.state());
+                    BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                    if (blockEntity != null) {
+                        blockEntity.readNbt(info.nbt());
+                    }
+                }
+                tickCounter = -1;
 
-           if(tickCounter == ticks){
-               for(StructureTemplate.StructureBlockInfo info : blockInfoLists){
-                   world.setBlockState(info.pos(), info.state());
-                   BlockEntity blockEntity = world.getBlockEntity(info.pos());
-                   if (blockEntity != null) {
-                       blockEntity.readNbt(info.nbt());
-                   }
-               }
-               tickCounter = -1;
-           }
-           tickCounter++;
-       }));
+            }else{
+                tickCounter++;
+            }
+        }));
     }
 
 
     private Vec3i size = Vec3i.ZERO;
-    private final List<StructureTemplate.StructureBlockInfo> blockInfoLists = Lists.newArrayList();
+    private final List<StructureTemplate.StructureBlockInfo> blockInfoList = Lists.newArrayList();
 
     /**Saves the block infos to <i>blockInfoLists</i>
-     *
-     * It's the same stuff used inside the StructureBlockEntity*/
-    private void saveFromWorld(World world, BlockPos start, Vec3i dimensions, @Nullable Block ignoredBlock) {
-        if (dimensions.getX() >= 1 && dimensions.getY() >= 1 && dimensions.getZ() >= 1) {
-            BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
-            List<StructureTemplate.StructureBlockInfo> list = Lists.newArrayList();
-            List<StructureTemplate.StructureBlockInfo> list2 = Lists.newArrayList();
-            List<StructureTemplate.StructureBlockInfo> list3 = Lists.newArrayList();
-            BlockPos blockPos2 = new BlockPos(Math.min(start.getX(), blockPos.getX()), Math.min(start.getY(), blockPos.getY()), Math.min(start.getZ(), blockPos.getZ()));
-            BlockPos blockPos3 = new BlockPos(Math.max(start.getX(), blockPos.getX()), Math.max(start.getY(), blockPos.getY()), Math.max(start.getZ(), blockPos.getZ()));
-            Iterator<BlockPos> var12 = BlockPos.iterate(blockPos2, blockPos3).iterator();
-
-            while(true) {
-                BlockPos blockPos4;
-                BlockPos blockPos5;
-                BlockState blockState;
-                do {
-                    if (!var12.hasNext()) {
-                        List<StructureTemplate.StructureBlockInfo> list4 = combineSorted(list, list2, list3);
-                        this.blockInfoLists.clear();
-                        this.blockInfoLists.addAll(list4);
-                        return;
-                    }
-                    blockPos4 = var12.next();
-                    blockPos5 = blockPos4.subtract(blockPos2);
-                    blockState = world.getBlockState(blockPos4);
-                } while(ignoredBlock != null && blockState.isOf(ignoredBlock));
-
-                BlockEntity blockEntity = world.getBlockEntity(blockPos4);
-                StructureTemplate.StructureBlockInfo structureBlockInfo;
-                if (blockEntity != null) {
-                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(blockPos5, blockState, blockEntity.createNbtWithId());
-                } else {
-                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(blockPos5, blockState, null);
-                }
-
-                categorize(structureBlockInfo, list, list2, list3);
-            }
-        }
-    }
-
-    /**
-     * Categorizes {@code blockInfo} based on its properties, modifying
-     * the passed lists in-place.
-     *
-     * <p>If the block has an NBT associated with it, then it will be
-     * put in {@code blocksWithNbt}. If the block does not have an NBT
-     * associated with it, but is always a full cube, then it will be
-     * put in {@code fullBlocks}. Otherwise, it will be put in
-     * {@code otherBlocks}.
-     *
-     * @apiNote After all blocks are categorized, {@link #combineSorted}
-     * should be called with the same parameters to get the final list.
      */
-    private static void categorize(StructureTemplate.StructureBlockInfo blockInfo, List<StructureTemplate.StructureBlockInfo> fullBlocks, List<StructureTemplate.StructureBlockInfo> blocksWithNbt, List<StructureTemplate.StructureBlockInfo> otherBlocks) {
-        if (blockInfo.nbt() != null) {
-            blocksWithNbt.add(blockInfo);
-        } else if (!blockInfo.state().getBlock().hasDynamicBounds() && blockInfo.state().isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) {
-            fullBlocks.add(blockInfo);
-        } else {
-            otherBlocks.add(blockInfo);
-        }
-    }
+    private void saveFromWorld(World world, BlockPos start, Vec3i dimensions, @Nullable Block ignoredBlock) {
+        /*if (dimensions.getX() >= 1 && dimensions.getY() >= 1 && dimensions.getZ() >= 1) {
 
-    /**Returns:
-     the list that sorts and combines the passed block lists
-     API Note:
-     The parameters passed should be the same one that was passed to previous calls to categorize. The returned value is meant to be passed to StructureTemplate.PalettedBlockInfoList.
-     Implementation Note:
-     Each list passed will be sorted in-place using the items' Y, X, and Z coordinates. The returned list contains all items of fullBlocks, otherBlocks, and blocksWithNbt in this order.*/
-    private static List<StructureTemplate.StructureBlockInfo> combineSorted(List<StructureTemplate.StructureBlockInfo> fullBlocks, List<StructureTemplate.StructureBlockInfo> blocksWithNbt, List<StructureTemplate.StructureBlockInfo> otherBlocks) {
-        Comparator<StructureTemplate.StructureBlockInfo> comparator = Comparator.comparingInt((
-                StructureTemplate.StructureBlockInfo blockInfo) -> blockInfo.pos().getY()).thenComparingInt((blockInfo) -> blockInfo.pos().getX()).thenComparingInt((blockInfo) -> blockInfo.pos().getZ());
-        fullBlocks.sort(comparator);
-        otherBlocks.sort(comparator);
-        blocksWithNbt.sort(comparator);
-        List<StructureTemplate.StructureBlockInfo> list = Lists.newArrayList();
-        list.addAll(fullBlocks);
-        list.addAll(otherBlocks);
-        list.addAll(blocksWithNbt);
-        return list;
+        }*/
+        //TODO may remove?
+        BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
+        BlockPos min_pos = new BlockPos(Math.min(start.getX(), blockPos.getX()), Math.min(start.getY(), blockPos.getY()), Math.min(start.getZ(), blockPos.getZ()));
+        BlockPos max_pos = new BlockPos(Math.max(start.getX(), blockPos.getX()), Math.max(start.getY(), blockPos.getY()), Math.max(start.getZ(), blockPos.getZ()));
+
+        //Iterates through all the block positions
+        for (BlockPos pos : BlockPos.iterate(min_pos, max_pos)) {
+            BlockEntity blockEntity = world.getBlockEntity(pos);
+            StructureTemplate.StructureBlockInfo structureBlockInfo;
+            if (blockEntity != null) {
+                structureBlockInfo = new StructureTemplate.StructureBlockInfo(pos, world.getBlockState(pos), blockEntity.createNbtWithId());
+            } else {
+                structureBlockInfo = new StructureTemplate.StructureBlockInfo(pos, world.getBlockState(pos), null);
+            }
+            //TODO always adds the same block?
+            blockInfoList.add(structureBlockInfo);
+            //TODO remove
+            LOGGER.info("Adding: " + structureBlockInfo);
+        }
+        //TODO remove
+        LOGGER.info("Ok the lists are done: " + blockInfoList);
     }
 }
