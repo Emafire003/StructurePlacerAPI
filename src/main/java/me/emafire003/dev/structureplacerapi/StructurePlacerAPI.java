@@ -239,7 +239,6 @@ public class StructurePlacerAPI {
 
 
 
-
     /**Use this method to load the structure into the world and
      * spawn it. You can check to see if the placing was succesful.
      *
@@ -263,7 +262,6 @@ public class StructurePlacerAPI {
      * after <i>ticks</i> it executes the replacement.
      *
      * TO CALL SERVER SIDE ONLY*/
-    @Environment(EnvType.SERVER)
     private void scheduleReplacement(int ticks){
        ServerTickEvents.END_SERVER_TICK.register((server -> {
            if(tickCounter == -1){
