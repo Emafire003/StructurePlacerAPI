@@ -17,7 +17,7 @@ dependencies {
     modImplementation "maven.modrinth:structureplacerapi:<version>"
 }
 ```
-If you want you can `include `the API in your jar file by adding only the `include` string:
+If you want you can `include` the API in your jar file by adding only the `include` string:
 ```gradle
 repositories {
     maven {
@@ -34,6 +34,7 @@ dependencies {
     include "maven.modrinth:structureplacerapi:<version>"
 }
 ```
+It's less than 15 kb!
 
 ## How to use it
 ### How to create the structure?
