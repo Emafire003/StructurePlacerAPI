@@ -12,6 +12,7 @@ import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.structure.processor.BlockRotStructureProcessor;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.math.random.Random;
@@ -21,10 +22,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.util.*;
 
 public class StructurePlacerAPI {
 
@@ -258,8 +259,7 @@ public class StructurePlacerAPI {
             optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
             if(!this.world.isClient()){
-                LOGGER.info("The size got: " + size);
-                saveFromWorld(this.world, this.blockPos, size, null);
+                saveFromWorld(this.world, this.blockPos.add(this.offset), size);
                 scheduleReplacement(restore_ticks);
             }
             return optional.isPresent() && this.place(optional.get());
@@ -281,8 +281,6 @@ public class StructurePlacerAPI {
             }
             if(tickCounter == ticks){
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    //TODO remove
-                    LOGGER.info("[====PLACING STUFF====] The block info got: " + info.toString());
                     world.setBlockState(info.pos(), info.state());
                     BlockEntity blockEntity = world.getBlockEntity(info.pos());
                     if (blockEntity != null) {
@@ -298,35 +296,45 @@ public class StructurePlacerAPI {
     }
 
 
+
     private Vec3i size = Vec3i.ZERO;
     private final List<StructureTemplate.StructureBlockInfo> blockInfoList = Lists.newArrayList();
 
     /**Saves the block infos to <i>blockInfoLists</i>
      */
-    private void saveFromWorld(World world, BlockPos start, Vec3i dimensions, @Nullable Block ignoredBlock) {
+    //TODO might seriously impact performance
+    //FIXED (yay) but there is a dupe glitch.
+    private void saveFromWorld(World world, BlockPos start, Vec3i dimensions) {
         /*if (dimensions.getX() >= 1 && dimensions.getY() >= 1 && dimensions.getZ() >= 1) {
 
         }*/
-        //TODO may remove?
+        Instant start_time = Instant.now();
+        LOGGER.debug("Saving terrain to later restore it...");
         BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
         BlockPos min_pos = new BlockPos(Math.min(start.getX(), blockPos.getX()), Math.min(start.getY(), blockPos.getY()), Math.min(start.getZ(), blockPos.getZ()));
         BlockPos max_pos = new BlockPos(Math.max(start.getX(), blockPos.getX()), Math.max(start.getY(), blockPos.getY()), Math.max(start.getZ(), blockPos.getZ()));
 
-        //Iterates through all the block positions
-        for (BlockPos pos : BlockPos.iterate(min_pos, max_pos)) {
-            BlockEntity blockEntity = world.getBlockEntity(pos);
+        //Iterates through all the block positions and adds them to list
+        BlockPos.iterate(min_pos, max_pos).iterator().forEachRemaining(pos -> {
+            //Copying the pos so it doesn't mutate and make a mess
+            BlockPos save_pos;
+            save_pos = new BlockPos(pos.getX(), pos.getY(), pos.getZ());
+
+            BlockEntity blockEntity = world.getBlockEntity(save_pos);
             StructureTemplate.StructureBlockInfo structureBlockInfo;
+
             if (blockEntity != null) {
-                structureBlockInfo = new StructureTemplate.StructureBlockInfo(pos, world.getBlockState(pos), blockEntity.createNbtWithId());
+                structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
             } else {
-                structureBlockInfo = new StructureTemplate.StructureBlockInfo(pos, world.getBlockState(pos), null);
+                structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
             }
-            //TODO always adds the same block?
             blockInfoList.add(structureBlockInfo);
-            //TODO remove
-            LOGGER.info("Adding: " + structureBlockInfo);
         }
-        //TODO remove
-        LOGGER.info("Ok the lists are done: " + blockInfoList);
+        );
+
+        Instant end_time = Instant.now();
+        Duration timeElapsed = Duration.between(start_time, end_time);
+
+        LOGGER.debug("Terrain saved! It took: " + timeElapsed.toMillis() + "ms");
     }
 }
