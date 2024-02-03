@@ -4,7 +4,7 @@
   "version": "${version}",
 
   "name": "StructurePlacerAPI",
-  "description": "Simply simple API to spawn NBT structures in your code, maybe after the use of an item or something.",
+  "description": "Simply simple API to spawn NBT structures in your code, with the option of restoring the old terrain.",
   "authors": [
     "Emafire003!"
   ],
@@ -19,7 +19,7 @@
 
   "environment": "*",
   "mixins": [
-    "structureplacerapi.mixins.json"
+
   ],
 
   "depends": {
