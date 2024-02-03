@@ -4,7 +4,12 @@ import com.google.common.collect.Lists;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.InventoryProvider;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.LootableContainerBlockEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
@@ -211,8 +216,8 @@ public class StructurePlacerAPI {
             if (this.integrity < 1.0F) {
                 structurePlacementData.clearProcessors().addProcessor(new BlockRotStructureProcessor(MathHelper.clamp(this.integrity, 0.0F, 1.0F))).setRandom(createRandom(this.world.getSeed()));
             }
-            BlockPos blockPos2 = blockPos.add(this.offset);
-            template.place(world, blockPos2, blockPos2, structurePlacementData, createRandom(this.world.getSeed()), 2);
+            BlockPos pos = blockPos.add(this.offset);
+            template.place(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
             unloadStructure();
             return true;
         }catch (Exception e){
@@ -238,7 +243,7 @@ public class StructurePlacerAPI {
 
 
     /**Use this method to load the structure into the world and
-     * spawn it. You can check to see if the placing was succesful.
+     * spawn it. You can check to see if the placing was successful.
      *
      * It will also restore the blocks it replaced after <i>restore_ticks</i>
      * Calling this function from the client only will not regenerate the old terrain.
@@ -260,6 +265,7 @@ public class StructurePlacerAPI {
 
             if(!this.world.isClient()){
                 saveFromWorld(this.world, this.blockPos.add(this.offset), size);
+                //TODO put back to not animated
                 scheduleReplacement(restore_ticks);
             }
             return optional.isPresent() && this.place(optional.get());
@@ -267,6 +273,38 @@ public class StructurePlacerAPI {
             return false;
         }
     }
+
+    /**Use this method to load the structure into the world and
+     * spawn it. You can check to see if the placing was successful.
+     *
+     * It will also restore the blocks it replaced after <i>restore_ticks</i> with an animation (one block per tick will be restored)
+     * Calling this function from the client only will not regenerate the old terrain.
+     * And will probably cause other issues.
+     *
+     * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
+     */
+    public boolean loadAndRestoreStructureAnimated(int restore_ticks) {
+        if (this.templateName != null) {
+            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+            Optional<StructureTemplate> optional;
+            try {
+                optional = structureTemplateManager.getTemplate(this.templateName);
+            } catch (InvalidIdentifierException var6) {
+                return false;
+            }
+            //It may be needed for the restoration
+            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
+
+            if(!this.world.isClient()){
+                saveFromWorld(this.world, this.blockPos.add(this.offset), size);
+                scheduleReplacementAnimated(restore_ticks);
+            }
+            return optional.isPresent() && this.place(optional.get());
+        } else {
+            return false;
+        }
+    }
+
 
     private int tickCounter = 0;
 
@@ -280,11 +318,17 @@ public class StructurePlacerAPI {
                 return;
             }
             if(tickCounter == ticks){
+                LOGGER.info("The blocklist when scheduling: " + blockInfoList);
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
                     world.setBlockState(info.pos(), info.state());
-                    BlockEntity blockEntity = world.getBlockEntity(info.pos());
-                    if (blockEntity != null) {
-                        blockEntity.readNbt(info.nbt());
+                    if (info.nbt() != null) {
+                        BlockEntity blockEntity = world.getBlockEntity(blockPos);
+                        if (blockEntity != null) {
+                            if (blockEntity instanceof LootableContainerBlockEntity) {
+                                info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                            }
+                            blockEntity.readNbt(info.nbt());
+                        }
                     }
                 }
                 tickCounter = -1;
@@ -292,6 +336,43 @@ public class StructurePlacerAPI {
             }else{
                 tickCounter++;
             }
+        }));
+    }
+
+    /**Schedules the replacement of the older terrain/world and
+     * after <i>ticks</i> it executes the replacement.
+     * It also does this with a basic animation of one block per tick, so 20 blocks/second
+     *
+     * TO CALL SERVER SIDE ONLY*/
+    private void scheduleReplacementAnimated(int ticks){
+        ServerTickEvents.END_SERVER_TICK.register((server -> {
+            if(tickCounter == -1){
+                return;
+            }
+            LOGGER.info("======== =========Tick: " + tickCounter);
+            if(tickCounter >= ticks){
+                LOGGER.info("======== Ok the thing is > ticks: ");
+                //If the length of the list is the same as the blocks placed it means it already placed the last one
+                boolean b = blockInfoList.size() == tickCounter-ticks;
+                LOGGER.info("======== The size (which is: " + blockInfoList.size() + ") is equal to the tickCounter - ticks:  " + b);
+                if(b){
+                    tickCounter = -1;
+                    return;
+                }
+                StructureTemplate.StructureBlockInfo info = blockInfoList.get(tickCounter - ticks);
+                world.setBlockState(info.pos(), info.state());
+                if (info.nbt() != null) {
+                    BlockEntity blockEntity = world.getBlockEntity(blockPos);
+                    if (blockEntity != null) {
+                        if (blockEntity instanceof LootableContainerBlockEntity) {
+                            info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                        }
+                        blockEntity.readNbt(info.nbt());
+                    }
+                }
+
+            }
+            tickCounter++;
         }));
     }
 
@@ -310,6 +391,7 @@ public class StructurePlacerAPI {
         }*/
         Instant start_time = Instant.now();
         LOGGER.debug("Saving terrain to later restore it...");
+        LOGGER.info("Saving terrain to later restore it...");
         BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
         BlockPos min_pos = new BlockPos(Math.min(start.getX(), blockPos.getX()), Math.min(start.getY(), blockPos.getY()), Math.min(start.getZ(), blockPos.getZ()));
         BlockPos max_pos = new BlockPos(Math.max(start.getX(), blockPos.getX()), Math.max(start.getY(), blockPos.getY()), Math.max(start.getZ(), blockPos.getZ()));
@@ -323,8 +405,16 @@ public class StructurePlacerAPI {
             BlockEntity blockEntity = world.getBlockEntity(save_pos);
             StructureTemplate.StructureBlockInfo structureBlockInfo;
 
+            //This means the block has an inventory, that it has already dropped, so don't copy its nbt
+
             if (blockEntity != null) {
-                structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
+                boolean has_inventory = Inventory.class.isAssignableFrom(blockEntity.getClass());
+                LOGGER.info("The blockentity " + blockEntity + " has inventory: " + has_inventory);
+                if(has_inventory){
+                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
+                }else{
+                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
+                }
             } else {
                 structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
             }
@@ -336,5 +426,6 @@ public class StructurePlacerAPI {
         Duration timeElapsed = Duration.between(start_time, end_time);
 
         LOGGER.debug("Terrain saved! It took: " + timeElapsed.toMillis() + "ms");
+        LOGGER.info("Terrain saved! It took: " + timeElapsed.toMillis() + "ms");
     }
 }
