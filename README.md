@@ -17,7 +17,7 @@ dependencies {
     modImplementation "maven.modrinth:structureplacerapi:<version>"
 }
 ```
-If you want you can `include `the API in your jar file by adding only the `include` string:
+If you want you can `include` the API in your jar file by adding only the `include` string:
 ```gradle
 repositories {
     maven {
@@ -34,6 +34,7 @@ dependencies {
     include "maven.modrinth:structureplacerapi:<version>"
 }
 ```
+It's less than 15 kb!
 
 ## How to use it
 ### How to create the structure?
@@ -58,19 +59,27 @@ StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos
 - Finally, the **`offset`** parameter is another BlockPos that could be useful to reposition the structure under an entity's feet or something.
 
 
-### And finally... the hard part.
-Now, you have to actually place the structure. Pay attention, it's a very tricky bit. You have just created a `StructurePlacerAPI placer = new StructurePlacerAPI(things up there)`, and to spawn it you will have to do this:
+### Placing the structure
+You have just created a `StructurePlacerAPI placer = new StructurePlacerAPI(things up there)`, and to spawn it you will have to do this:
 ```java
 placer.loadStructure();
 ```
 Yeah ok it's not that difficult. You just have to run that tho, not the `.place` method directly, since the load will also check for the existance of said structure before spawning it.
 
-#### Restoring the old terrein after some times
+#### Restoring the old terrein after some time
 Starting from version `1.1.0` you can also use: 
 ```java
 placer.loadAndRestoreStructure(int restore_ticks);
 ```
-to supply an amount of ticks ( 1 seconds = 20 ticks ) after which the old terrain will be restored.
+to supply an amount of ticks ( 1 seconds = 20 ticks ) after which the old terrain will be restored. 
+**NOTICE**: It could lead to performance issues, especially if the structure is really big! (It needs to save every block inside the structure!)
+
+You can also add an animation for the blocks reappearing by using:
+```java
+placer.loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random);
+```
+- `blocks_per_ticks` is the amaount of blocks that will be replaced each tick, so if your structure is made by 200 blocks, and the blocks_per_ticks is set to 1, it will take 1 second to place 20 blocks, and 20 seconds to finish the terrain restoration.
+- `random` refers to order in which the blocks will be replaced. Setting to true, each time the regenerated block will be a random one, otherwise it will go from one angle of the structure to the other one. In my opinion, random = true is cooler.
 
 ### Example
 An example of this could be the one you find insde the [LightWithin](https://github.com/Emafire003/LightWithin) mod(whihc btw, you should check out): 
@@ -78,6 +87,14 @@ An example of this could be the one you find insde the [LightWithin](https://git
 StructurePlacer placer = new StructurePlacer((ServerWorld) caster.getWorld(), new Identifier(MOD_ID, "frost_light"), caster.getBlockPos(), BlockMirror.NONE, BlockRotation.CLOCKWISE_90, true, 1.0f, new BlockPos(-4, -3, -3));
 placer.loadStructure();
 ```
+To have a permanent structure
+
+```java
+StructurePlacer placer = new StructurePlacer((ServerWorld) caster.getWorld(), new Identifier(MOD_ID, "frost_light"), caster.getBlockPos(), BlockMirror.NONE, BlockRotation.CLOCKWISE_90, true, 1.0f, new BlockPos(-4, -3, -3));
+placer.loadAndRestoreStructureAnimated(200, 2, true);
+```
+To make the old terrain regenerate by replacing two blocks per tick, in a random order. 
+
 ### Warning!
 IMPORTANT! MAKE SURE YOU ARE ON THE SERVER THREAD!
 
