@@ -183,7 +183,10 @@ public class StructurePlacerAPI {
     }
 
     /**Use this method to load the structure into the world and
-     * spawn it. You can check to see if the placing was succesful.
+     * place it. You can check to see if the placing was successful.
+     *
+     * This method DOES NOT support regenerating the old terrain, use <code>loadAndRestore()</code> instead
+     * if you want to do it. This method however consumes less resources.
      */
     public boolean loadStructure() {
         if (this.templateName != null) {
@@ -239,8 +242,10 @@ public class StructurePlacerAPI {
      * spawn it. You can check to see if the placing was successful.
      *
      * It will also restore the blocks it replaced after <i>restore_ticks</i>
-     * Calling this function from the client only will not regenerate the old terrain.
+     * Calling this function from the client only, will not regenerate the old terrain.
      * And will probably cause other issues.
+     *
+     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
      *
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
      */
@@ -273,6 +278,8 @@ public class StructurePlacerAPI {
      *
      * Calling this function from the client only will not regenerate the old terrain.
      * And will probably cause other issues.
+     *
+     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
      *
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the blocks will begin to be restored
      * @param blocks_per_tick How many blocks to restore per tick, the more the faster the animation will go.
@@ -383,9 +390,10 @@ public class StructurePlacerAPI {
                         info = infoList.get(i);
                         infoList.remove(i);
                     }else{
-                        info = blockInfoList.get(tickCounter - ticks);
+                        info = infoList.get(tickCounter - ticks);
                     }
 
+                    world.setBlockState(info.pos(), info.state());
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
@@ -413,6 +421,8 @@ public class StructurePlacerAPI {
     private final List<StructureTemplate.StructureBlockInfo> blockInfoList = new ArrayList<>();
 
     /**Saves the block infos to <i>blockInfoLists</i>
+     *
+     * Will also debug log the time it took to save the structure.
      */
     private void saveFromWorld(World world, BlockPos start, Vec3i dimensions) {
         Instant start_time = Instant.now();
