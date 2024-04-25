@@ -24,17 +24,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
+@SuppressWarnings("unused")
 public class StructurePlacerAPI {
 
-    private ServerWorld world;
-    private Identifier templateName;
-    private BlockPos blockPos;
-    private BlockMirror mirror;
-    private BlockRotation rotation;
-    private boolean ignoreEntities;
-    private float integrity;
-    private BlockPos offset;
+    private final ServerWorld world;
+    private final Identifier templateName;
+    private final BlockPos blockPos;
+    private final BlockMirror mirror;
+    private final BlockRotation rotation;
+    private final boolean ignoreEntities;
+    private final float integrity;
+    private final BlockPos offset;
+    private Vec3i size = Vec3i.ZERO;
 
     private final Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
 
@@ -109,7 +112,7 @@ public class StructurePlacerAPI {
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
-    */
+     */
     public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockMirror mirror){
         this.world = world;
         this.templateName = templateName;
@@ -169,7 +172,7 @@ public class StructurePlacerAPI {
      * @param world The ServerWorld in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
-    * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
+     * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * */
     public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, float integrity){
         this.world = world;
@@ -184,7 +187,7 @@ public class StructurePlacerAPI {
 
     /**Use this method to load the structure into the world and
      * place it. You can check to see if the placing was successful.
-     *
+     * <p>
      * This method DOES NOT support regenerating the old terrain, use <code>loadAndRestore()</code> instead
      * if you want to do it. This method however consumes less resources.
      */
@@ -240,11 +243,11 @@ public class StructurePlacerAPI {
 
     /**Use this method to load the structure into the world and
      * spawn it. You can check to see if the placing was successful.
-     *
+     * <p>
      * It will also restore the blocks it replaced after <i>restore_ticks</i>
      * Calling this function from the client only, will not regenerate the old terrain.
      * And will probably cause other issues.
-     *
+     *<p>
      * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
      *
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
@@ -262,8 +265,7 @@ public class StructurePlacerAPI {
             optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
             if(!this.world.isClient()){
-                saveFromWorld(this.world, this.blockPos.add(this.offset), size);
-                scheduleReplacement(restore_ticks);
+                scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
             }
             return optional.isPresent() && this.place(optional.get());
         } else {
@@ -273,16 +275,16 @@ public class StructurePlacerAPI {
 
     /**Use this method to load the structure into the world and
      * spawn it. You can check to see if the placing was successful.
-     *
+     *<p>
      * It will also restore the blocks it replaced after <i>restore_ticks</i> with an animation
-     *
+     *<p>
      * Calling this function from the client only will not regenerate the old terrain.
      * And will probably cause other issues.
-     *
+     *<p>
      * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
      *
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the blocks will begin to be restored
-     * @param blocks_per_tick How many blocks to restore per tick, the more the faster the animation will go.
+     * @param blocks_per_tick How many blocks to restore per tick, the more, the faster the animation will go.
      * @param random Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
      */
     public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
@@ -297,8 +299,7 @@ public class StructurePlacerAPI {
             optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
             if(!this.world.isClient()){
-                saveFromWorld(this.world, this.blockPos.add(this.offset), size);
-                scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random);
+                scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
             }
             return optional.isPresent() && this.place(optional.get());
         } else {
@@ -307,18 +308,22 @@ public class StructurePlacerAPI {
     }
 
 
-    private int tickCounter = 0;
 
     /**Schedules the replacement of the older terrain/world and
      * after <i>ticks</i> it executes the replacement.
-     *
+     *<p>
      * TO CALL SERVER SIDE ONLY*/
-    private void scheduleReplacement(int ticks){
+    private void scheduleReplacement(int ticks, List<StructureTemplate.StructureBlockInfo> blockInfoList){
+        AtomicInteger counter = new AtomicInteger();
+        counter.set(0);
+
         ServerTickEvents.END_SERVER_TICK.register((server -> {
-            if(tickCounter == -1){
+
+            if(counter.get() == -1){
                 return;
             }
-            if(tickCounter == ticks){
+            if(counter.get() == ticks){
+
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
                     world.setBlockState(info.pos(), info.state());
 
@@ -335,10 +340,10 @@ public class StructurePlacerAPI {
                         });
                     }
                 }
-                tickCounter = -1;
+                counter.set(-1);
 
             }else{
-                tickCounter++;
+                counter.getAndIncrement();
             }
 
         }));
@@ -349,35 +354,39 @@ public class StructurePlacerAPI {
     /**Schedules the replacement of the older terrain/world and
      * after <i>ticks</i> it executes the replacement.
      * It also does this with a basic animation
-     *
+     *<p>
      * TO CALL SERVER SIDE ONLY
      *
      * @param ticks Number of ticks after which the blocks will begin to be restored
-     * @param blocks_per_tick How many blocks to restore per tick, the more the faster the animation will go
+     * @param blocks_per_tick How many blocks to restore per tick, the more, the faster the animation will go
      * @param rand Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
      * */
-    private void scheduleReplacementAnimated(int ticks, int blocks_per_tick, boolean rand){
+    private void scheduleReplacementAnimated(int ticks, int blocks_per_tick, boolean rand, List<StructureTemplate.StructureBlockInfo> blockInfoList){
 
         List<StructureTemplate.StructureBlockInfo> infoList = new ArrayList<>();
+        AtomicInteger count = new AtomicInteger();
 
         ServerTickEvents.END_SERVER_TICK.register((server -> {
-            if(tickCounter == -1){
+
+            if(count.get() == -1){
                 return;
             }
-            if(tickCounter >= ticks){
+
+            if(count.get() >= ticks){
                 //If the length of the list is the same as the blocks placed it means it already placed the last one
 
-                if(tickCounter == ticks){
+                if(count.get() == ticks){
                     infoList.addAll(blockInfoList);
                 }
-                if(infoList.size() == 0){
-                    tickCounter = -1;
+                if(infoList.isEmpty()){
+                    count.set(-1);
                     return;
                 }
+
                 for(int j = 0; j<blocks_per_tick; j++){
-                    if(infoList.size() == 0){
-                        tickCounter = -1;
-                        break;
+                    if(infoList.isEmpty()){
+                        count.set(-1);
+                        return;
                     }
                     StructureTemplate.StructureBlockInfo info;
                     if(rand){
@@ -390,10 +399,11 @@ public class StructurePlacerAPI {
                         info = infoList.get(i);
                         infoList.remove(i);
                     }else{
-                        info = infoList.get(tickCounter - ticks);
+                        info = infoList.get(count.get() - ticks);
                     }
 
                     world.setBlockState(info.pos(), info.state());
+
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
@@ -410,21 +420,18 @@ public class StructurePlacerAPI {
 
 
             }
-            tickCounter++;
+            count.getAndIncrement();
         }));
         infoList.clear();
     }
 
 
-
-    private Vec3i size = Vec3i.ZERO;
-    private final List<StructureTemplate.StructureBlockInfo> blockInfoList = new ArrayList<>();
-
     /**Saves the block infos to <i>blockInfoLists</i>
-     *
+     *<p>
      * Will also debug log the time it took to save the structure.
      */
-    private void saveFromWorld(World world, BlockPos start, Vec3i dimensions) {
+    private List<StructureTemplate.StructureBlockInfo> saveFromWorld(World world, BlockPos start, Vec3i dimensions) {
+        List<StructureTemplate.StructureBlockInfo> blockInfoList = new ArrayList<>();
         Instant start_time = Instant.now();
         LOGGER.debug("Saving terrain to later restore it...");
         BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
@@ -433,32 +440,33 @@ public class StructurePlacerAPI {
 
         //Iterates through all the block positions and adds them to list
         BlockPos.iterate(min_pos, max_pos).iterator().forEachRemaining(pos -> {
-            //Copying the pos so it doesn't mutate and make a mess
-            BlockPos save_pos;
-            save_pos = new BlockPos(pos.getX(), pos.getY(), pos.getZ());
+                    //Copying the pos, so it doesn't mutate and make a mess
+                    BlockPos save_pos;
+                    save_pos = new BlockPos(pos.getX(), pos.getY(), pos.getZ());
 
-            BlockEntity blockEntity = world.getBlockEntity(save_pos);
-            StructureTemplate.StructureBlockInfo structureBlockInfo;
+                    BlockEntity blockEntity = world.getBlockEntity(save_pos);
+                    StructureTemplate.StructureBlockInfo structureBlockInfo;
 
-            //This means the block has an inventory, that it has already dropped, so don't copy its nbt
+                    //This means the block has an inventory, that it has already dropped, so don't copy its nbt
 
-            if (blockEntity != null) {
-                boolean has_inventory = Inventory.class.isAssignableFrom(blockEntity.getClass());
-                if(has_inventory){
-                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
-                }else{
-                    structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
+                    if (blockEntity != null) {
+                        boolean has_inventory = Inventory.class.isAssignableFrom(blockEntity.getClass());
+                        if(has_inventory){
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
+                        }else{
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
+                        }
+                    } else {
+                        structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
+                    }
+                    blockInfoList.add(structureBlockInfo);
                 }
-            } else {
-                structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
-            }
-            blockInfoList.add(structureBlockInfo);
-        }
         );
 
         Instant end_time = Instant.now();
         Duration timeElapsed = Duration.between(start_time, end_time);
 
         LOGGER.debug("Terrain saved! It took: " + timeElapsed.toMillis() + "ms");
+        return blockInfoList;
     }
 }
