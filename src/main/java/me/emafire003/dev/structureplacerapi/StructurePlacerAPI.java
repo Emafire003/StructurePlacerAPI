@@ -1,10 +1,10 @@
 package me.emafire003.dev.structureplacerapi;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.block.Block;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
@@ -14,7 +14,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.world.StructureWorldAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("unused")
 public class StructurePlacerAPI {
 
-    private final ServerWorld world;
+    private final StructureWorldAccess world;
     private final Identifier templateName;
     private final BlockPos blockPos;
     private final BlockMirror mirror;
@@ -45,7 +45,7 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
@@ -54,7 +54,7 @@ public class StructurePlacerAPI {
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -69,11 +69,11 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos) {
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos) {
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -88,12 +88,12 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockPos offset){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -108,12 +108,12 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockMirror mirror){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -128,12 +128,12 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockRotation rotation){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockRotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -148,13 +148,13 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -169,12 +169,12 @@ public class StructurePlacerAPI {
      * With this you can create placer object which will spawn
      * a new structure from an nbt file located in /data/modid/structures
      *
-     * @param world The ServerWorld in which to place the structure
+     * @param world The StructureWorldAccess in which to place the structure
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * */
-    public StructurePlacerAPI(ServerWorld world, Identifier templateName, BlockPos blockPos, float integrity){
+    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, float integrity){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -192,8 +192,8 @@ public class StructurePlacerAPI {
      * if you want to do it. This method however consumes less resources.
      */
     public boolean loadStructure() {
-        if (this.templateName != null) {
-            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+        if (this.templateName != null && world.getServer() != null) {
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.getTemplate(this.templateName);
@@ -228,8 +228,8 @@ public class StructurePlacerAPI {
     /**This method unloads the structure after it has been placed.
      * No need to use it on your own, included during placement*/
     private void unloadStructure() {
-        if (this.templateName != null) {
-            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+        if (this.templateName != null && world.getServer() != null) {
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             structureTemplateManager.unloadTemplate(this.templateName);
         }
     }
@@ -253,8 +253,8 @@ public class StructurePlacerAPI {
      * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
      */
     public boolean loadAndRestoreStructure(int restore_ticks) {
-        if (this.templateName != null) {
-            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+        if (this.templateName != null && world.getServer() != null) {
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.getTemplate(this.templateName);
@@ -288,8 +288,8 @@ public class StructurePlacerAPI {
      * @param random Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
      */
     public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
-        if (this.templateName != null) {
-            StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
+        if (this.templateName != null && world.getServer() != null) {
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.getTemplate(this.templateName);
@@ -325,7 +325,7 @@ public class StructurePlacerAPI {
             if(counter.get() == ticks){
 
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    world.setBlockState(info.pos(), info.state());
+                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
 
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
@@ -402,7 +402,7 @@ public class StructurePlacerAPI {
                         info = infoList.get(count.get() - ticks);
                     }
 
-                    world.setBlockState(info.pos(), info.state());
+                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
 
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
@@ -430,7 +430,7 @@ public class StructurePlacerAPI {
      *<p>
      * Will also debug log the time it took to save the structure.
      */
-    private List<StructureTemplate.StructureBlockInfo> saveFromWorld(World world, BlockPos start, Vec3i dimensions) {
+    private List<StructureTemplate.StructureBlockInfo> saveFromWorld(StructureWorldAccess world, BlockPos start, Vec3i dimensions) {
         List<StructureTemplate.StructureBlockInfo> blockInfoList = new ArrayList<>();
         Instant start_time = Instant.now();
         LOGGER.debug("Saving terrain to later restore it...");
