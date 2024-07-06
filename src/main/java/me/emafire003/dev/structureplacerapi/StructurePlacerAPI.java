@@ -325,18 +325,17 @@ public class StructurePlacerAPI {
             if(counter.get() == ticks){
 
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlockState(info.pos, info.state, Block.NOTIFY_ALL);
 
-                    if (info.nbt() != null) {
+                    if (info.nbt != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                            BlockEntity blockEntity = world.getBlockEntity(info.pos);
                             if (blockEntity != null) {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                    info.nbt.putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
-
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.readNbt(info.nbt);
                             }
                         });
                     }
@@ -403,17 +402,17 @@ public class StructurePlacerAPI {
                         info = infoList.get(count.get() - ticks);
                     }
 
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlockState(info.pos, info.state, Block.NOTIFY_ALL);
 
-                    if (info.nbt() != null) {
+                    if (info.nbt != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                            BlockEntity blockEntity = world.getBlockEntity(info.pos);
                             if (blockEntity != null) {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                    info.nbt.putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.readNbt(info.nbt);
                             }
                         });
                     }
@@ -455,7 +454,7 @@ public class StructurePlacerAPI {
                         if(has_inventory){
                             structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
                         }else{
-                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId(world.getRegistryManager()));
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
                         }
                     } else {
                         structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
