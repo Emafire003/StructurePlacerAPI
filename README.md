@@ -109,7 +109,6 @@ If you would like to offer me a coffee, here you go.
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S88307C)
 Alternativly, you can support me by supporting you using a 25% off on a server for you and your friend using this code down here
-[![bisecthosting](https://www.bisecthosting.com/partners/custom-banners/e9c85d2a-cafa-4e2f-98bf-4f62bd9e951c.png)](https://www.bisecthosting.com/LightDev)
 
 ## License
 This API is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
