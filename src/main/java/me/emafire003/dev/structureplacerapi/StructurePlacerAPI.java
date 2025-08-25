@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.inventory.Inventory;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
@@ -183,6 +184,30 @@ public class StructurePlacerAPI {
         this.ignoreEntities = true;
         this.integrity = integrity;
         this.offset = new BlockPos(0, 0, 0);
+    }
+
+    /** Returns an instance of the loaded structure.
+     * From this, you can get its size and other useful stuff
+     */
+    public Optional<StructureTemplate> getTemplate(){
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
+        return structureTemplateManager.getTemplate(this.templateName);
+    }
+
+    /** Returns the copy of a structure that you are going to be loading later,
+     * in order to get its size and other info
+     */
+    public static Optional<StructureTemplate> getTemplatePreview(ServerWorld world, Identifier templateName){
+        StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
+        return structureTemplateManager.getTemplate(templateName);
+    }
+
+    /** Returns the copy of a structure that you are going to be loading later,
+     * in order to get its size and other info
+     */
+    public static Optional<StructureTemplate> getTemplatePreview(StructureWorldAccess world, Identifier templateName){
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
+        return structureTemplateManager.getTemplate(templateName);
     }
 
     /**Use this method to load the structure into the world and
