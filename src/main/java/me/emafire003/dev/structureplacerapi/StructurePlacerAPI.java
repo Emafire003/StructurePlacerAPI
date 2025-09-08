@@ -361,7 +361,7 @@ public class StructurePlacerAPI {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
 
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.readNbt(info.nbt());
                             }
                         });
                     }
@@ -438,7 +438,7 @@ public class StructurePlacerAPI {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.readNbt(info.nbt());
                             }
                         });
                     }
@@ -480,7 +480,7 @@ public class StructurePlacerAPI {
                         if(has_inventory){
                             structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
                         }else{
-                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId(world.getRegistryManager()));
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId());
                         }
                     } else {
                         structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
