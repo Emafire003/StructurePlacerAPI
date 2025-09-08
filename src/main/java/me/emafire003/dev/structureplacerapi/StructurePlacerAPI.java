@@ -350,18 +350,18 @@ public class StructurePlacerAPI {
             if(counter.get() == ticks){
 
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlockState(info.pos, info.state, Block.NOTIFY_ALL);
 
-                    if (info.nbt() != null) {
+                    if (info.nbt != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                            BlockEntity blockEntity = world.getBlockEntity(info.pos);
                             if (blockEntity != null) {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                    info.nbt.putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
 
-                                blockEntity.readNbt(info.nbt());
+                                blockEntity.readNbt(info.nbt);
                             }
                         });
                     }
@@ -428,17 +428,17 @@ public class StructurePlacerAPI {
                         info = infoList.get(count.get() - ticks);
                     }
 
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlockState(info.pos, info.state, Block.NOTIFY_ALL);
 
-                    if (info.nbt() != null) {
+                    if (info.nbt != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                            BlockEntity blockEntity = world.getBlockEntity(info.pos);
                             if (blockEntity != null) {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                    info.nbt.putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
-                                blockEntity.readNbt(info.nbt());
+                                blockEntity.readNbt(info.nbt);
                             }
                         });
                     }
