@@ -19,11 +19,11 @@
 
   "environment": "*",
   "mixins": [
-
+    "structureplacerapi.mixins.json"
   ],
 
   "depends": {
-    "fabricloader": ">=0.15.3",
+    "fabricloader": ">=0.16.14",
     "fabric": "*",
     "java": ">=16"
   },
