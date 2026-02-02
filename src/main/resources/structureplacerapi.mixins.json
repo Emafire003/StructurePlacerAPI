@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "me.emafire003.dev.structureplacerapi.mixin",
+  "compatibilityLevel": "JAVA_16",
+  "mixins": [
+    "CustomStructureTemplateMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
