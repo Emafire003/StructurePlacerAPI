@@ -23,6 +23,23 @@ public interface ICustomStructureTemplate {
     /** Sets the tag for the blocks needed for {@link #structurePlacerAPI$setPreventReplacementOfTagBlocks(boolean, TagKey)} or {@link #structurePlacerAPI$setOnlyReplaceTagBlocks(boolean, TagKey)}*/
     void structurePlacerAPI$setTaggedBlocks(TagKey<Block> taggedBlocks);
     TagKey<Block> structurePlacerAPI$getTaggedBlocks();
-    
-    
+
+    void structurePlacerAPI$setActOnBlockStructurePlacing(boolean b);
+    boolean structurePlacerAPI$getActOnBlockStructurePlacing();
+    void structurePlacerAPI$setActOnBlockReplacedByStructure(boolean b);
+    boolean structurePlacerAPI$getActOnBlockReplacedByStructure();
+
+    void structurePlacerAPI$setOnBlockPlacingInStructure(ActionOnBlockFind action);
+    ActionOnBlockFind structurePlacerAPI$getOnBlockPlacingInStructure();
+
+    void structurePlacerAPI$setOnBlockReplacedByStructure(ActionOnBlockFind action);
+    ActionOnBlockFind structurePlacerAPI$getOnBlockReplacedByStructure();
+
+    void structurePlacerAPI$setBlockPlacedCheck(TagKey<Block> blocks);
+    TagKey<Block> structurePlacerAPI$getBlockPlacedCheck();
+    void structurePlacerAPI$setBlockReplacedCheck(TagKey<Block> blocks);
+    TagKey<Block> structurePlacerAPI$getBlockReplacedCheck();
+
+
+
 }
