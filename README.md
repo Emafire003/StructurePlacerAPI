@@ -1,5 +1,5 @@
 # Structure Placer API
-This simple API provides a simple way to spawn a structure in your world one-time, instead of putting it in the world generation. It could be useful for an item that creates a portal, or someother kind of structure. Or to create LuckyBlocks, who knows! 
+This simple API provides a simple way to spawn a structure in your world one-time, instead of putting it in the world generation. It could be useful for an item that creates a portal, or some other kind of structure. Or to create LuckyBlocks, who knows! 
 ## Setup
 Include this library into your `build.gradle` as a dependency
 ```gradle
@@ -34,7 +34,7 @@ dependencies {
     include "maven.modrinth:structureplacerapi:<version>"
 }
 ```
-It's less than 15 kb!
+It's less than 25 kb!
 
 ## How to use it
 ### How to create the structure?
@@ -80,6 +80,23 @@ placer.loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, b
 ```
 - `blocks_per_ticks` is the amaount of blocks that will be replaced each tick, so if your structure is made by 200 blocks, and the blocks_per_ticks is set to 1, it will take 1 second to place 20 blocks, and 20 seconds to finish the terrain restoration.
 - `random` refers to order in which the blocks will be replaced. Setting to true, each time the regenerated block will be a random one, otherwise it will go from one angle of the structure to the other one. In my opinion, random = true is cooler.
+
+### Selecting which blocks should be replaced (from 2.0.0 onwards)
+You can now specify if the structure that gets placed can replace bedrock and barriers or blocks with a certain tag, or if it can ONLY replace blocks with a certain tag.
+After you have created you StructurePlacerAPI placer object, ou can use these methods:
+```java
+/** Sets weather or not this structure should replace the bedrock */
+placer.setReplaceBedrock(boolean replaceBedrock)
+    
+/** Weather or not this structure should replace the barrier block */
+placer.setReplaceBarrier(boolean replaceBarrier)
+
+/** Sets weather or not this structure should only replace blocks with the provided tag, for example only replace air blocks */
+placer.setOnlyReplaceTaggedBlocks(boolean onlyReplaceTaggedBlocks, TagKey<Block> tag)
+
+/** Allows to specify blocks which won't be replaced if they have the provided tag*/
+placer.setPreventReplacementOfTaggedBlocks(boolean preventReplacementOfTaggedBlocks, TagKey<Block> tag)
+```
 
 ### Example
 An example of this could be the one you find insde the [LightWithin](https://github.com/Emafire003/LightWithin) mod(whihc btw, you should check out): 

@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.inventory.Inventory;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
@@ -40,7 +41,13 @@ public class StructurePlacerAPI {
     private final BlockPos offset;
     private Vec3i size = Vec3i.ZERO;
 
-    private final Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
+    public boolean replaceBedrock = false;
+    public boolean replaceBarrier = false;
+    public boolean onlyReplaceTaggedBlocks = false;
+    public boolean preventReplacementOfTaggedBlocks = false;
+    public TagKey<Block> taggedBlocks = null;
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
 
     /**
      * With this you can create placer object which will spawn
@@ -213,19 +220,64 @@ public class StructurePlacerAPI {
     /**Use this method to load the structure into the world and
      * place it. You can check to see if the placing was successful.
      * <p>
-     * This method DOES NOT support regenerating the old terrain, use <code>loadAndRestore()</code> instead
+     * This method DOES NOT support regenerating the old terrain,
+     * use {@link #loadAndRestoreStructure(int)} or {@link #loadAndRestoreStructureAnimated(int, int, boolean)} instead
      * if you want to do it. This method however consumes less resources.
      */
     public boolean loadStructure() {
+        return loadAndRestoreStructureAnimated(-1, -1, false);
+    }
+
+    /**Use this method to load the structure into the world and
+     * spawn it. You can check to see if the placing was successful.
+     * <p>
+     * It will also restore the blocks it replaced after <i>restore_ticks</i>
+     * Calling this function from the client only, will not regenerate the old terrain.
+     * And will probably cause other issues.
+     *<p>
+     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
+     *
+     * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
+     *                      Setting this to -1 will prevent the structure from being restored so use {@link #loadStructure()} instead
+     */
+    public boolean loadAndRestoreStructure(int restore_ticks) {
+        return loadAndRestoreStructureAnimated(restore_ticks, -1, false);
+    }
+
+    /**Use this method to load the structure into the world and
+     * spawn it. You can check to see if the placing was successful.
+     *<p>
+     * It will also restore the blocks it replaced after <i>restore_ticks</i> with an animation
+     *<p>
+     * Calling this function from the client only will not regenerate the old terrain.
+     * And will probably cause other issues.
+     *<p>
+     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
+     *
+     * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the blocks will begin to be restored
+     *                      Setting this to -1 will prevent the structure from being restored so use {@link #loadStructure()} instead
+     * @param blocks_per_tick How many blocks to restore per tick, the more, the faster the animation will go.
+     *                        Setting thi to -1 will cancel the animation so use {@link #loadAndRestoreStructure(int)} instead
+     * @param random Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
+     */
+    public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
         if (this.templateName != null && world.getServer() != null) {
             StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.getTemplate(this.templateName);
-            } catch (InvalidIdentifierException e) {
+            } catch (InvalidIdentifierException var6) {
                 return false;
             }
+            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
+            if(!this.world.isClient() && restore_ticks != -1){
+                if(blocks_per_tick != -1){
+                    scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
+                }else{
+                    scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
+                }
+            }
             return optional.isPresent() && this.place(optional.get());
         } else {
             return false;
@@ -241,6 +293,12 @@ public class StructurePlacerAPI {
                 structurePlacementData.clearProcessors().addProcessor(new BlockRotStructureProcessor(MathHelper.clamp(this.integrity, 0.0F, 1.0F))).setRandom(createRandom(this.world.getSeed()));
             }
             BlockPos pos = blockPos.add(this.offset);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setCustom(true);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setReplaceBedrock(replaceBedrock);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setReplaceBarrier(replaceBarrier);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setOnlyReplaceTagBlocks(onlyReplaceTaggedBlocks, taggedBlocks);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setPreventReplacementOfTagBlocks(preventReplacementOfTaggedBlocks, taggedBlocks);
+
             template.place(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
             unloadStructure();
             return true;
@@ -264,75 +322,6 @@ public class StructurePlacerAPI {
     public static Random createRandom(long seed) {
         return seed == 0L ? Random.create(Util.getMeasuringTimeMs()) : Random.create(seed);
     }
-
-
-    /**Use this method to load the structure into the world and
-     * spawn it. You can check to see if the placing was successful.
-     * <p>
-     * It will also restore the blocks it replaced after <i>restore_ticks</i>
-     * Calling this function from the client only, will not regenerate the old terrain.
-     * And will probably cause other issues.
-     *<p>
-     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
-     *
-     * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the world would be restored.
-     */
-    public boolean loadAndRestoreStructure(int restore_ticks) {
-        if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
-            Optional<StructureTemplate> optional;
-            try {
-                optional = structureTemplateManager.getTemplate(this.templateName);
-            } catch (InvalidIdentifierException var6) {
-                return false;
-            }
-
-            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
-
-            if(!this.world.isClient()){
-                scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
-            }
-            return optional.isPresent() && this.place(optional.get());
-        } else {
-            return false;
-        }
-    }
-
-    /**Use this method to load the structure into the world and
-     * spawn it. You can check to see if the placing was successful.
-     *<p>
-     * It will also restore the blocks it replaced after <i>restore_ticks</i> with an animation
-     *<p>
-     * Calling this function from the client only will not regenerate the old terrain.
-     * And will probably cause other issues.
-     *<p>
-     * <b>Notice:</b> Using this could lead to performance issues, especially with very large structures!
-     *
-     * @param restore_ticks Number of ticks (1 second = 20 ticks) after which the blocks will begin to be restored
-     * @param blocks_per_tick How many blocks to restore per tick, the more, the faster the animation will go.
-     * @param random Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
-     */
-    public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
-        if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
-            Optional<StructureTemplate> optional;
-            try {
-                optional = structureTemplateManager.getTemplate(this.templateName);
-            } catch (InvalidIdentifierException var6) {
-                return false;
-            }
-            optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
-
-            if(!this.world.isClient()){
-                scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
-            }
-            return optional.isPresent() && this.place(optional.get());
-        } else {
-            return false;
-        }
-    }
-
-
 
     /**Schedules the replacement of the older terrain/world and
      * after <i>ticks</i> it executes the replacement.
@@ -375,7 +364,6 @@ public class StructurePlacerAPI {
         }));
 
     }
-
 
     /**Schedules the replacement of the older terrain/world and
      * after <i>ticks</i> it executes the replacement.
@@ -451,7 +439,6 @@ public class StructurePlacerAPI {
         infoList.clear();
     }
 
-
     /**Saves the block infos to <i>blockInfoLists</i>
      *<p>
      * Will also debug log the time it took to save the structure.
@@ -494,5 +481,51 @@ public class StructurePlacerAPI {
 
         LOGGER.debug("Terrain saved! It took: " + timeElapsed.toMillis() + "ms");
         return blockInfoList;
+    }
+
+
+    public boolean isReplaceBedrock() {
+        return replaceBedrock;
+    }
+
+    /** Sets weather or not this structure should replace the bedrock */
+    public void setReplaceBedrock(boolean replaceBedrock) {
+        this.replaceBedrock = replaceBedrock;
+    }
+
+    public boolean isReplaceBarrier() {
+        return replaceBarrier;
+    }
+
+    /** Weather or not this structure should replace the barrier block */
+    public void setReplaceBarrier(boolean replaceBarrier) {
+        this.replaceBarrier = replaceBarrier;
+    }
+
+    public boolean isOnlyReplaceTaggedBlocks() {
+        return onlyReplaceTaggedBlocks;
+    }
+
+    /** Sets weather or not this structure should only replace blocks with the provided tag, for example only replace air blocks */
+    public void setOnlyReplaceTaggedBlocks(boolean onlyReplaceTaggedBlocks, TagKey<Block> tag) {
+        this.onlyReplaceTaggedBlocks = onlyReplaceTaggedBlocks;
+        this.setTaggedBlocks(tag);
+    }
+
+    public boolean isPreventReplacementOfTaggedBlocks() {
+        return preventReplacementOfTaggedBlocks;
+    }
+
+    /** Allows to specify blocks which won't be replaced if they have the provided tag*/
+    public void setPreventReplacementOfTaggedBlocks(boolean preventReplacementOfTaggedBlocks, TagKey<Block> tag) {
+        this.preventReplacementOfTaggedBlocks = preventReplacementOfTaggedBlocks;
+        this.setTaggedBlocks(tag);
+    }
+
+    public TagKey<Block> getTaggedBlocks() {
+        return taggedBlocks;
+    }
+    public void setTaggedBlocks(TagKey<Block> taggedBlocks) {
+        this.taggedBlocks = taggedBlocks;
     }
 }
