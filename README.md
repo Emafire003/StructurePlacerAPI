@@ -34,7 +34,7 @@ dependencies {
     include "maven.modrinth:structureplacerapi:<version>"
 }
 ```
-It's less than 25 kb!
+It's only 20 kb!
 
 ## How to use it
 ### How to create the structure?
