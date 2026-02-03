@@ -4,7 +4,9 @@ import com.llamalad7.mixinextras.expression.Definition;
 import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
+import me.emafire003.dev.structureplacerapi.ActionOnBlockFind;
 import me.emafire003.dev.structureplacerapi.ICustomStructureTemplate;
+import me.emafire003.dev.structureplacerapi.StructurePlacerAPI;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -36,6 +38,19 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     public boolean onlyReplaceTaggedBlocks = false;
     @Unique
     public TagKey<Block> taggedBlocks = null;
+
+    @Unique
+    public boolean actOnBlockStructurePlacing = false;
+    @Unique
+    public boolean actOnBlockReplacedByStructure = false;
+    @Unique /// aka check the block IN the structure
+    public ActionOnBlockFind onBlockPlacingInStructure;
+    @Unique /// aka check the block that is getting replced BY the structure
+    public ActionOnBlockFind onBlockReplacedByStructure;
+    @Unique
+    public TagKey<Block> blockPlacedCheck;
+    @Unique
+    public TagKey<Block> blockReplacedCheck;
 
     @Override
     public void structurePlacerAPI$setCustom(boolean custom) {
@@ -99,6 +114,58 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
         return taggedBlocks;
     }
 
+    @Override
+    public void structurePlacerAPI$setActOnBlockStructurePlacing(boolean b){
+        actOnBlockStructurePlacing = b;
+    }
+    @Override
+    public boolean structurePlacerAPI$getActOnBlockStructurePlacing(){
+        return actOnBlockStructurePlacing;
+    }
+    @Override
+    public void structurePlacerAPI$setActOnBlockReplacedByStructure(boolean b){
+        actOnBlockReplacedByStructure = b;
+    }
+    @Override
+    public boolean structurePlacerAPI$getActOnBlockReplacedByStructure(){
+        return actOnBlockReplacedByStructure;
+    }
+
+    @Override
+    public void structurePlacerAPI$setOnBlockPlacingInStructure(ActionOnBlockFind action){
+        onBlockPlacingInStructure = action;
+    }
+    @Override
+    public ActionOnBlockFind structurePlacerAPI$getOnBlockPlacingInStructure(){
+        return onBlockPlacingInStructure;
+    }
+
+    @Override
+    public void structurePlacerAPI$setOnBlockReplacedByStructure(ActionOnBlockFind action){
+        onBlockReplacedByStructure = action;
+    }
+    @Override
+    public ActionOnBlockFind structurePlacerAPI$getOnBlockReplacedByStructure(){
+        return onBlockReplacedByStructure;
+    }
+
+    @Override
+    public void structurePlacerAPI$setBlockPlacedCheck(TagKey<Block> blocks){
+        blockPlacedCheck = blocks;
+    }
+    @Override
+    public TagKey<Block> structurePlacerAPI$getBlockPlacedCheck(){
+        return blockPlacedCheck;
+    }
+    @Override
+    public void structurePlacerAPI$setBlockReplacedCheck(TagKey<Block> blocks){
+        blockReplacedCheck = blocks;
+    }
+    @Override
+    public TagKey<Block> structurePlacerAPI$getBlockReplacedCheck(){
+        return blockReplacedCheck;
+    }
+
 
     @Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
     @Expression("process(?,?,?,?,?)")
@@ -136,6 +203,24 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                 }
                 else{
                     filteredInfos.add(structureBlockInfo);
+                }
+
+                /// Block action checks things
+                // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
+                if(actOnBlockStructurePlacing && structureBlockInfo.state().isIn(blockPlacedCheck)){
+                    if(onBlockPlacingInStructure == null){
+                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
+                    }else{
+                        onBlockPlacingInStructure.action(structureBlockInfo, world);
+                    }
+                }
+                // Checks if there is a potential action to be executed when the block from the world is about to be replaced by the one from the structure
+                if(actOnBlockReplacedByStructure && defaultState.isIn(blockReplacedCheck)){
+                    if(onBlockReplacedByStructure == null){
+                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
+                    }else{
+                        onBlockReplacedByStructure.action(structureBlockInfo, world);
+                    }
                 }
             });
             return filteredInfos;

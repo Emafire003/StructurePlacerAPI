@@ -46,6 +46,14 @@ public class StructurePlacerAPI {
     public boolean onlyReplaceTaggedBlocks = false;
     public boolean preventReplacementOfTaggedBlocks = false;
     public TagKey<Block> taggedBlocks = null;
+    public boolean actOnBlockStructurePlacing = false;
+    public boolean actOnBlockReplacedByStructure = false;
+    /// aka check the block IN the structure
+    public ActionOnBlockFind onBlockPlacingInStructure;
+    /// aka check the block that is getting replced BY the structure
+    public ActionOnBlockFind onBlockReplacedByStructure;
+    public TagKey<Block> blockPlacedCheck;
+    public TagKey<Block> blockReplacedCheck;
 
     public static final Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
 
@@ -299,6 +307,14 @@ public class StructurePlacerAPI {
             ((ICustomStructureTemplate) template).structurePlacerAPI$setOnlyReplaceTagBlocks(onlyReplaceTaggedBlocks, taggedBlocks);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setPreventReplacementOfTagBlocks(preventReplacementOfTaggedBlocks, taggedBlocks);
 
+            // TODO test these out
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setActOnBlockStructurePlacing(actOnBlockStructurePlacing);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setActOnBlockReplacedByStructure(actOnBlockReplacedByStructure);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setOnBlockPlacingInStructure(onBlockPlacingInStructure);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setOnBlockReplacedByStructure(onBlockReplacedByStructure);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockPlacedCheck(blockPlacedCheck);
+            ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockReplacedCheck(blockReplacedCheck);
+
             template.place(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
             unloadStructure();
             return true;
@@ -527,5 +543,24 @@ public class StructurePlacerAPI {
     }
     public void setTaggedBlocks(TagKey<Block> taggedBlocks) {
         this.taggedBlocks = taggedBlocks;
+    }
+
+    /** Performs an action while placing a block with a tag, from the saved structure file
+     * <p>
+     * For example, a structure that has a fence inside of it will have an action that spawns a rabbit on top of it*/
+    public void actionOnBlocksPlacedByStructure(ActionOnBlockFind action, TagKey<Block> targets){
+        blockPlacedCheck = targets;
+        actOnBlockStructurePlacing = true;
+        onBlockPlacingInStructure = action;
+    }
+
+    /** Performs an action while a block with a tag in the world gets replaced by one from the structure file
+     * <p>
+     * For example, in the world there is snow block that will be replaced by the structure,
+     * will have an action that spawn a snowgolem on top of it*/
+    public void actionOnBlocksReplacedByStructure(ActionOnBlockFind action, TagKey<Block> targets){
+        blockReplacedCheck = targets;
+        actOnBlockReplacedByStructure = true;
+        onBlockReplacedByStructure = action;
     }
 }
