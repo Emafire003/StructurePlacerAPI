@@ -172,9 +172,30 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     @ModifyExpressionValue(method = "place", at = @At("MIXINEXTRAS:EXPRESSION"))
     public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerWorldAccess world){
         if(isCustomStructureTemplate){
+
             List<StructureTemplate.StructureBlockInfo> filteredInfos = new ArrayList<>();
             original.forEach( structureBlockInfo -> {
                 BlockState defaultState = world.getBlockState(structureBlockInfo.pos());
+
+                /// Block action checks things
+                // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
+                if(actOnBlockStructurePlacing && structureBlockInfo.state().isIn(blockPlacedCheck)){
+                    if(onBlockPlacingInStructure == null){
+                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
+                    }else{
+                        onBlockPlacingInStructure.action(structureBlockInfo, world);
+                    }
+                }
+                // Checks if there is a potential action to be executed when the block from the world is about to be replaced by the one from the structure
+                if(actOnBlockReplacedByStructure && defaultState.isIn(blockReplacedCheck)){
+                    if(onBlockReplacedByStructure == null){
+                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
+                    }else{
+                        onBlockReplacedByStructure.action(structureBlockInfo, world);
+                    }
+                }
+
+                /// Prevent block replacements
                 //If we only have to replace tagged blocks, if the block found isn't tagged we should keep it along with its nbt data
                 if(onlyReplaceTaggedBlocks && taggedBlocks != null && !defaultState.isIn(taggedBlocks)){
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
@@ -205,23 +226,6 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     filteredInfos.add(structureBlockInfo);
                 }
 
-                /// Block action checks things
-                // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
-                if(actOnBlockStructurePlacing && structureBlockInfo.state().isIn(blockPlacedCheck)){
-                    if(onBlockPlacingInStructure == null){
-                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
-                    }else{
-                        onBlockPlacingInStructure.action(structureBlockInfo, world);
-                    }
-                }
-                // Checks if there is a potential action to be executed when the block from the world is about to be replaced by the one from the structure
-                if(actOnBlockReplacedByStructure && defaultState.isIn(blockReplacedCheck)){
-                    if(onBlockReplacedByStructure == null){
-                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
-                    }else{
-                        onBlockReplacedByStructure.action(structureBlockInfo, world);
-                    }
-                }
             });
             return filteredInfos;
         }
