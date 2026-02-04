@@ -41,19 +41,19 @@ public class StructurePlacerAPI {
     private final BlockPos offset;
     private Vec3i size = Vec3i.ZERO;
 
-    public boolean replaceBedrock = false;
-    public boolean replaceBarrier = false;
-    public boolean onlyReplaceTaggedBlocks = false;
-    public boolean preventReplacementOfTaggedBlocks = false;
-    public TagKey<Block> taggedBlocks = null;
-    public boolean actOnBlockStructurePlacing = false;
-    public boolean actOnBlockReplacedByStructure = false;
+    protected boolean replaceBedrock = false;
+    protected boolean replaceBarrier = false;
+    protected boolean onlyReplaceTaggedBlocks = false;
+    protected boolean preventReplacementOfTaggedBlocks = false;
+    protected TagKey<Block> taggedBlocks = null;
+    protected boolean actOnBlockStructurePlacing = false;
+    protected boolean actOnBlockReplacedByStructure = false;
     /// aka check the block IN the structure
-    public ActionOnBlockFind onBlockPlacingInStructure;
+    protected ActionOnBlockFind onBlockPlacingInStructure;
     /// aka check the block that is getting replced BY the structure
-    public ActionOnBlockFind onBlockReplacedByStructure;
-    public TagKey<Block> blockPlacedCheck;
-    public TagKey<Block> blockReplacedCheck;
+    protected ActionOnBlockFind onBlockReplacedByStructure;
+    protected TagKey<Block> blockPlacedCheck;
+    protected TagKey<Block> blockReplacedCheck;
 
     public static final Logger LOGGER = LoggerFactory.getLogger("structureplacerapi");
 
