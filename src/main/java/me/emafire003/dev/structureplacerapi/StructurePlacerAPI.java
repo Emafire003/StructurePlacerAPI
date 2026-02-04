@@ -7,6 +7,8 @@ import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
@@ -366,7 +368,7 @@ public class StructurePlacerAPI {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
 
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.read(NbtReadView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER).makeChild(blockEntity.getReporterContext()), world.getRegistryManager(), info.nbt()));
                             }
                         });
                     }
@@ -442,7 +444,7 @@ public class StructurePlacerAPI {
                                 if (blockEntity instanceof LootableContainerBlockEntity) {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
                                 }
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.read(NbtReadView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER).makeChild(blockEntity.getReporterContext()), world.getRegistryManager(), info.nbt()));
                             }
                         });
                     }
@@ -483,7 +485,9 @@ public class StructurePlacerAPI {
                         if(has_inventory){
                             structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
                         }else{
-                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId(world.getRegistryManager()));
+                            NbtWriteView nbtWriteView = NbtWriteView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER), world.getRegistryManager());
+                            blockEntity.writeDataWithId(nbtWriteView);
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), nbtWriteView.getNbt());
                         }
                     } else {
                         structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);

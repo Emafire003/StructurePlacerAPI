@@ -12,7 +12,9 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.registry.tag.TagKey;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.structure.StructureTemplate;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.world.ServerWorldAccess;
 import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
@@ -201,7 +203,9 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId(world.getRegistryManager()));
+                        NbtWriteView nbtWriteView = NbtWriteView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER), world.getRegistryManager());
+                        blockEntity.writeDataWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.getNbt());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
@@ -212,7 +216,9 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId(world.getRegistryManager()));
+                        NbtWriteView nbtWriteView = NbtWriteView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER), world.getRegistryManager());
+                        blockEntity.writeDataWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.getNbt());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
