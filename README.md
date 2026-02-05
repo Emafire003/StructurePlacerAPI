@@ -98,6 +98,28 @@ placer.setOnlyReplaceTaggedBlocks(boolean onlyReplaceTaggedBlocks, TagKey<Block>
 placer.setPreventReplacementOfTaggedBlocks(boolean preventReplacementOfTaggedBlocks, TagKey<Block> tag)
 ```
 
+### Performing an action when a certain block is placed with the structure, or replaced by it (2.0.0+)
+Now you have the option to execute a function when a block inside a structure gets placed in the world or when a block 
+is replaced while placing the structure. 
+
+For example, if you want a random fox to spawn when placing a structure containing berry bushes you can use:
+```java
+placer.actionOnBlocksPlacedByStructure(ActionOnBlockFind action, TagKey<Block> targets);
+
+//Example:
+placer.actionOnBlocksPlacedByStructure((info, world) -> {world.spawnEntity(EntityType.FoxEntity, ...)}, BlockTags.BUSHES);
+```
+The action is a lambda function that provides you with the `StructureBlockInfo` and `ServerWorldAccess` (or `ServerLevelAccess` or whatever it is with mojmaps). You have to specify a tag for the kind of block you want to replace. If it's only a single block type create a Tag for that block.
+
+The other thing you can do is execute something when a block that is *already in the world gets replaced* by the structure. 
+Like spawning snow particles when an ice block is replaced:
+```java
+placer.actionOnBlocksReplacedByStructure(ActionOnBlockFind action, TagKey<Block> targets);
+
+//Example:
+placer.actionOnBlocksReplacedByStructure((info, world) -> {world.spawnParticles(ParticleType.SNOW, ...)}, BlockTags.ICE);
+```
+
 ### Example
 An example of this could be the one you find insde the [LightWithin](https://github.com/Emafire003/LightWithin) mod(whihc btw, you should check out): 
 ```java
