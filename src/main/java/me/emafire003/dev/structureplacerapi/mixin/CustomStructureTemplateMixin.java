@@ -201,7 +201,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId(world.getRegistryManager()));
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
@@ -212,7 +212,8 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId(world.getRegistryManager()));
+                        //blockEntity.read(NbtReadView.create(logging.makeChild(blockEntity.getReporterContext()), world.getRegistryManager(), structureBlockInfo.nbt));
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
