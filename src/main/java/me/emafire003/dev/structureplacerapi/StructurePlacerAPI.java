@@ -1,22 +1,27 @@
 package me.emafire003.dev.structureplacerapi;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.block.Block;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.structure.StructurePlacementData;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.structure.StructureTemplateManager;
-import net.minecraft.structure.processor.BlockRotStructureProcessor;
+import net.minecraft.ResourceLocationException;
+import net.minecraft.Util;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.Container;
+import net.minecraft.tags.TagKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockRotProcessor;
 import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.StructureWorldAccess;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.core.Vec3i;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.WorldGenLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +36,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("unused")
 public class StructurePlacerAPI {
 
-    private final StructureWorldAccess world;
-    private final Identifier templateName;
+    private final WorldGenLevel world;
+    private final ResourceLocation templateName;
     private final BlockPos blockPos;
-    private final BlockMirror mirror;
-    private final BlockRotation rotation;
+    private final Mirror mirror;
+    private final Rotation rotation;
     private final boolean ignoreEntities;
     private final float integrity;
     private final BlockPos offset;
@@ -70,7 +75,7 @@ public class StructurePlacerAPI {
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror, Rotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -89,12 +94,12 @@ public class StructurePlacerAPI {
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos) {
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos) {
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
-        this.mirror = BlockMirror.NONE;
-        this.rotation = BlockRotation.NONE;
+        this.mirror = Mirror.NONE;
+        this.rotation = Rotation.NONE;
         this.ignoreEntities = true;
         this.integrity = 1.0f;
         this.offset = new BlockPos(0, 0, 0);
@@ -109,12 +114,12 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockPos offset){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
-        this.mirror = BlockMirror.NONE;
-        this.rotation = BlockRotation.NONE;
+        this.mirror = Mirror.NONE;
+        this.rotation = Rotation.NONE;
         this.ignoreEntities = true;
         this.integrity = 1.0f;
         this.offset = offset;
@@ -129,12 +134,12 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
         this.mirror = mirror;
-        this.rotation = BlockRotation.NONE;
+        this.rotation = Rotation.NONE;
         this.ignoreEntities = true;
         this.integrity = 1.0f;
         this.offset = new BlockPos(0, 0, 0);
@@ -149,11 +154,11 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockRotation rotation){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Rotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
-        this.mirror = BlockMirror.NONE;
+        this.mirror = Mirror.NONE;
         this.rotation = rotation;
         this.ignoreEntities = true;
         this.integrity = 1.0f;
@@ -170,7 +175,7 @@ public class StructurePlacerAPI {
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, BlockMirror mirror, BlockRotation rotation){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror, Rotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -190,12 +195,12 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * */
-    public StructurePlacerAPI(StructureWorldAccess world, Identifier templateName, BlockPos blockPos, float integrity){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, float integrity){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
-        this.mirror = BlockMirror.NONE;
-        this.rotation = BlockRotation.NONE;
+        this.mirror = Mirror.NONE;
+        this.rotation = Rotation.NONE;
         this.ignoreEntities = true;
         this.integrity = integrity;
         this.offset = new BlockPos(0, 0, 0);
@@ -205,24 +210,24 @@ public class StructurePlacerAPI {
      * From this, you can get its size and other useful stuff
      */
     public Optional<StructureTemplate> getTemplate(){
-        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
-        return structureTemplateManager.getTemplate(this.templateName);
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureManager();
+        return structureTemplateManager.get(this.templateName);
     }
 
     /** Returns the copy of a structure that you are going to be loading later,
      * in order to get its size and other info
      */
-    public static Optional<StructureTemplate> getTemplatePreview(ServerWorld world, Identifier templateName){
-        StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
-        return structureTemplateManager.getTemplate(templateName);
+    public static Optional<StructureTemplate> getTemplatePreview(ServerLevel world, ResourceLocation templateName){
+        StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
+        return structureTemplateManager.get(templateName);
     }
 
     /** Returns the copy of a structure that you are going to be loading later,
      * in order to get its size and other info
      */
-    public static Optional<StructureTemplate> getTemplatePreview(StructureWorldAccess world, Identifier templateName){
-        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
-        return structureTemplateManager.getTemplate(templateName);
+    public static Optional<StructureTemplate> getTemplatePreview(WorldGenLevel world, ResourceLocation templateName){
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureManager();
+        return structureTemplateManager.get(templateName);
     }
 
     /**Use this method to load the structure into the world and
@@ -270,20 +275,20 @@ public class StructurePlacerAPI {
      */
     public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
         if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
             Optional<StructureTemplate> optional;
             try {
-                optional = structureTemplateManager.getTemplate(this.templateName);
-            } catch (InvalidIdentifierException var6) {
+                optional = structureTemplateManager.get(this.templateName);
+            } catch (ResourceLocationException var6) {
                 return false;
             }
             optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
 
-            if(!this.world.isClient() && restore_ticks != -1){
+            if(!this.world.isClientSide() && restore_ticks != -1){
                 if(blocks_per_tick != -1){
-                    scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
+                    scheduleReplacementAnimated(restore_ticks, blocks_per_tick, random, saveFromWorld(this.world, this.blockPos.offset(this.offset), size));
                 }else{
-                    scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.add(this.offset), size));
+                    scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.offset(this.offset), size));
                 }
             }
             return optional.isPresent() && this.place(optional.get());
@@ -296,11 +301,11 @@ public class StructurePlacerAPI {
      * which already checks if the structure exists or not, so use that instead*/
     private boolean place(StructureTemplate template) {
         try {
-            StructurePlacementData structurePlacementData = (new StructurePlacementData()).setMirror(this.mirror).setRotation(this.rotation).setIgnoreEntities(this.ignoreEntities);
+            StructurePlaceSettings structurePlacementData = (new StructurePlaceSettings()).setMirror(this.mirror).setRotation(this.rotation).setIgnoreEntities(this.ignoreEntities);
             if (this.integrity < 1.0F) {
-                structurePlacementData.clearProcessors().addProcessor(new BlockRotStructureProcessor(MathHelper.clamp(this.integrity, 0.0F, 1.0F))).setRandom(createRandom(this.world.getSeed()));
+                structurePlacementData.clearProcessors().addProcessor(new BlockRotProcessor(Mth.clamp(this.integrity, 0.0F, 1.0F))).setRandom(createRandom(this.world.getSeed()));
             }
-            BlockPos pos = blockPos.add(this.offset);
+            BlockPos pos = blockPos.offset(this.offset);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setCustom(true);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setReplaceBedrock(replaceBedrock);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setReplaceBarrier(replaceBarrier);
@@ -315,7 +320,7 @@ public class StructurePlacerAPI {
             ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockPlacedCheck(blockPlacedCheck);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockReplacedCheck(blockReplacedCheck);
 
-            template.place(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
+            template.placeInWorld(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
             unloadStructure();
             return true;
         }catch (Exception e){
@@ -328,15 +333,15 @@ public class StructurePlacerAPI {
      * No need to use it on your own, included during placement*/
     private void unloadStructure() {
         if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
-            structureTemplateManager.unloadTemplate(this.templateName);
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
+            structureTemplateManager.remove(this.templateName);
         }
     }
 
     /**This method creates a random seed for the integrity run-down effect.
      * No need to use it on your own, included during placement*/
-    public static Random createRandom(long seed) {
-        return seed == 0L ? Random.create(Util.getMeasuringTimeMs()) : Random.create(seed);
+    public static RandomSource createRandom(long seed) {
+        return seed == 0L ? RandomSource.create(Util.getMillis()) : RandomSource.create(seed);
     }
 
     /**Schedules the replacement of the older terrain/world and
@@ -355,18 +360,18 @@ public class StructurePlacerAPI {
             if(counter.get() == ticks){
 
                 for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
 
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
                             BlockEntity blockEntity = world.getBlockEntity(info.pos());
                             if (blockEntity != null) {
-                                if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                if (blockEntity instanceof RandomizableContainerBlockEntity) {
+                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                                 }
 
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.loadWithComponents(info.nbt(), world.registryAccess());
                             }
                         });
                     }
@@ -432,17 +437,17 @@ public class StructurePlacerAPI {
                         info = infoList.get(count.get() - ticks);
                     }
 
-                    world.setBlockState(info.pos(), info.state(), Block.NOTIFY_ALL);
+                    world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
 
                     if (info.nbt() != null) {
                         //The blockentities check needs to be done on the main thread
                         server.execute( () -> {
                             BlockEntity blockEntity = world.getBlockEntity(info.pos());
                             if (blockEntity != null) {
-                                if (blockEntity instanceof LootableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getWorld()).getRandom().nextLong());
+                                if (blockEntity instanceof RandomizableContainerBlockEntity) {
+                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                                 }
-                                blockEntity.read(info.nbt(), world.getRegistryManager());
+                                blockEntity.loadWithComponents(info.nbt(), world.registryAccess());
                             }
                         });
                     }
@@ -459,16 +464,16 @@ public class StructurePlacerAPI {
      *<p>
      * Will also debug log the time it took to save the structure.
      */
-    private List<StructureTemplate.StructureBlockInfo> saveFromWorld(StructureWorldAccess world, BlockPos start, Vec3i dimensions) {
+    private List<StructureTemplate.StructureBlockInfo> saveFromWorld(WorldGenLevel world, BlockPos start, Vec3i dimensions) {
         List<StructureTemplate.StructureBlockInfo> blockInfoList = new ArrayList<>();
         Instant start_time = Instant.now();
         LOGGER.debug("Saving terrain to later restore it...");
-        BlockPos blockPos = start.add(dimensions).add(-1, -1, -1);
+        BlockPos blockPos = start.offset(dimensions).offset(-1, -1, -1);
         BlockPos min_pos = new BlockPos(Math.min(start.getX(), blockPos.getX()), Math.min(start.getY(), blockPos.getY()), Math.min(start.getZ(), blockPos.getZ()));
         BlockPos max_pos = new BlockPos(Math.max(start.getX(), blockPos.getX()), Math.max(start.getY(), blockPos.getY()), Math.max(start.getZ(), blockPos.getZ()));
 
         //Iterates through all the block positions and adds them to list
-        BlockPos.iterate(min_pos, max_pos).iterator().forEachRemaining(pos -> {
+        BlockPos.betweenClosed(min_pos, max_pos).iterator().forEachRemaining(pos -> {
                     //Copying the pos, so it doesn't mutate and make a mess
                     BlockPos save_pos;
                     save_pos = new BlockPos(pos.getX(), pos.getY(), pos.getZ());
@@ -479,11 +484,11 @@ public class StructurePlacerAPI {
                     //This means the block has an inventory, that it has already dropped, so don't copy its nbt
 
                     if (blockEntity != null) {
-                        boolean has_inventory = Inventory.class.isAssignableFrom(blockEntity.getClass());
+                        boolean has_inventory = Container.class.isAssignableFrom(blockEntity.getClass());
                         if(has_inventory){
                             structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
                         }else{
-                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.createNbtWithId(world.getRegistryManager()));
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.saveWithId(world.registryAccess()));
                         }
                     } else {
                         structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
