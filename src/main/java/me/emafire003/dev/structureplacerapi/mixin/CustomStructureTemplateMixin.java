@@ -11,8 +11,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.registry.tag.TagKey;
 import net.minecraft.structure.StructureTemplate;
+import net.minecraft.tag.TagKey;
 import net.minecraft.world.ServerWorldAccess;
 import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
@@ -167,7 +167,10 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     }
 
 
-    @Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
+    /*@Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
+    @Expression("process(?,?,?,?,?)")
+    @ModifyExpressionValue(method = "place", at = @At("MIXINEXTRAS:EXPRESSION"))*/
+    @Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
     @Expression("process(?,?,?,?,?)")
     @ModifyExpressionValue(method = "place", at = @At("MIXINEXTRAS:EXPRESSION"))
     public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerWorldAccess world){
@@ -175,11 +178,11 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
 
             List<StructureTemplate.StructureBlockInfo> filteredInfos = new ArrayList<>();
             original.forEach( structureBlockInfo -> {
-                BlockState defaultState = world.getBlockState(structureBlockInfo.pos());
+                BlockState defaultState = world.getBlockState(structureBlockInfo.pos);
 
                 /// Block action checks things
                 // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
-                if(actOnBlockStructurePlacing && structureBlockInfo.state().isIn(blockPlacedCheck)){
+                if(actOnBlockStructurePlacing && structureBlockInfo.state.isIn(blockPlacedCheck)){
                     if(onBlockPlacingInStructure == null){
                         StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
                     }else{
@@ -198,30 +201,30 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                 /// Prevent block replacements
                 //If we only have to replace tagged blocks, if the block found isn't tagged we should keep it along with its nbt data
                 if(onlyReplaceTaggedBlocks && taggedBlocks != null && !defaultState.isIn(taggedBlocks)){
-                    BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
+                    BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos);
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId());
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos, defaultState, blockEntity.createNbtWithId());
                     } else {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos, defaultState, null);
                     }
                     filteredInfos.add(info);
                 }
                 //if the block found has a tag we should keep it along with its nbt
                 else if(preventReplacementOfTagBlocks && taggedBlocks != null && defaultState.isIn(taggedBlocks)){
-                    BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
+                    BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos);
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
                         //blockEntity.read(NbtReadView.create(logging.makeChild(blockEntity.getReporterContext()), world.getRegistryManager(), structureBlockInfo.nbt));
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.createNbtWithId());
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos, defaultState, blockEntity.createNbtWithId());
                     } else {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos, defaultState, null);
                     }
                     filteredInfos.add(info);
                 }
                 //If replace bedrock (or barriers) is false, it means that if we find bedrock it should remain there
                 else if((!replaceBedrock && defaultState.isOf(Blocks.BEDROCK)) || (!replaceBarrier && defaultState.isOf(Blocks.BARRIER))){
-                    filteredInfos.add(new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null));
+                    filteredInfos.add(new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos, defaultState, null));
                 }
                 else{
                     filteredInfos.add(structureBlockInfo);

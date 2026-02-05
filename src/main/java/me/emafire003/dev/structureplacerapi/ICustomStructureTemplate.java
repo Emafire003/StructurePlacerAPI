@@ -1,7 +1,7 @@
 package me.emafire003.dev.structureplacerapi;
 
 import net.minecraft.block.Block;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.tag.TagKey;
 
 @SuppressWarnings("unused")
 public interface ICustomStructureTemplate {
