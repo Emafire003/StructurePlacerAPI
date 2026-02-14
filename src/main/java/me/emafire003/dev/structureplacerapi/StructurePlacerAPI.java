@@ -37,7 +37,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @SuppressWarnings("unused")
-@Mod("structureplacerapi")
 public class StructurePlacerAPI {
 
     private WorldGenLevel world = null;
@@ -208,10 +207,6 @@ public class StructurePlacerAPI {
         this.ignoreEntities = true;
         this.integrity = integrity;
         this.offset = new BlockPos(0, 0, 0);
-    }
-
-    public StructurePlacerAPI(IEventBus modBus) {
-        NeoForge.EVENT_BUS.register(StructurePlacerAPI.class);
     }
 
     /** Returns an instance of the loaded structure.
