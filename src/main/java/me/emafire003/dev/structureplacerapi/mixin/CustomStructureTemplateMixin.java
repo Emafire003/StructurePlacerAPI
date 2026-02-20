@@ -7,13 +7,13 @@ import com.llamalad7.mixinextras.sugar.Local;
 import me.emafire003.dev.structureplacerapi.ActionOnBlockFind;
 import me.emafire003.dev.structureplacerapi.ICustomStructureTemplate;
 import me.emafire003.dev.structureplacerapi.StructurePlacerAPI;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.ServerLevelAccessor;
 import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -166,8 +166,8 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
         return blockReplacedCheck;
     }
 
-    @Definition(id = "process", method = "Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;)Ljava/util/List;")
-    @Expression("process(?,?,?,?,?)")
+    @Definition(id = "processBlockInfos", method = "Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;)Ljava/util/List;")
+    @Expression("processBlockInfos(?,?,?,?,?,?)")
     @ModifyExpressionValue(method = "placeInWorld", at = @At("MIXINEXTRAS:EXPRESSION"))
     public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerLevelAccessor world){
         if(isCustomStructureTemplate){

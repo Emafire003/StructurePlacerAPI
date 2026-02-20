@@ -1,9 +1,9 @@
 package me.emafire003.dev.structureplacerapi;
 
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -22,6 +22,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("unused")
 public class StructurePlacerAPI {
@@ -349,40 +350,25 @@ public class StructurePlacerAPI {
      *<p>
      * TO CALL SERVER SIDE ONLY*/
     private void scheduleReplacement(int ticks, List<StructureTemplate.StructureBlockInfo> blockInfoList){
-        AtomicInteger counter = new AtomicInteger();
-        counter.set(0);
+        runLater(ticks, (server) -> {
+            for(StructureTemplate.StructureBlockInfo info : blockInfoList){
+                world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
 
-        ServerTickEvents.END_SERVER_TICK.register((server -> {
-
-            if(counter.get() == -1){
-                return;
-            }
-            if(counter.get() == ticks){
-
-                for(StructureTemplate.StructureBlockInfo info : blockInfoList){
-                    world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
-
-                    if (info.nbt() != null) {
-                        //The blockentities check needs to be done on the main thread
-                        server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
-                            if (blockEntity != null) {
-                                if (blockEntity instanceof RandomizableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
-                                }
-
-                                blockEntity.load(info.nbt());
+                if (info.nbt() != null) {
+                    //The blockentities check needs to be done on the main thread
+                    server.execute( () -> {
+                        BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                        if (blockEntity != null) {
+                            if (blockEntity instanceof RandomizableContainerBlockEntity) {
+                                info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                             }
-                        });
-                    }
+
+                            blockEntity.load(info.nbt());
+                        }
+                    });
                 }
-                counter.set(-1);
-
-            }else{
-                counter.getAndIncrement();
             }
-
-        }));
+        });
 
     }
 
@@ -392,71 +378,62 @@ public class StructurePlacerAPI {
      *<p>
      * TO CALL SERVER SIDE ONLY
      *
-     * @param ticks Number of ticks after which the blocks will begin to be restored
+     * @param startDelayTicks Number of ticks after which the blocks will begin to be restored
      * @param blocks_per_tick How many blocks to restore per tick, the more, the faster the animation will go
      * @param rand Weather or not the blocks will be removed at random. If false, they will be removed from one corner to the other in sequence
      * */
-    private void scheduleReplacementAnimated(int ticks, int blocks_per_tick, boolean rand, List<StructureTemplate.StructureBlockInfo> blockInfoList){
-
+    private void scheduleReplacementAnimated(int startDelayTicks, int blocks_per_tick, boolean rand, List<StructureTemplate.StructureBlockInfo> blockInfoList){
         List<StructureTemplate.StructureBlockInfo> infoList = new ArrayList<>();
-        AtomicInteger count = new AtomicInteger();
 
-        ServerTickEvents.END_SERVER_TICK.register((server -> {
+        runEveryTick((server, ticks) -> {
 
-            if(count.get() == -1){
-                return;
+            //Waits until we have reached the start delay. Aka when the current ticks are fewer than the delay return but continue to loop
+            if(ticks < startDelayTicks){
+                return true;
+            }
+            //If the length of the list is the same as the blocks placed it means it already placed the last one
+            if(ticks == startDelayTicks){
+                infoList.addAll(blockInfoList);
+            }
+            if(infoList.isEmpty()){
+                return false;
             }
 
-            if(count.get() >= ticks){
-                //If the length of the list is the same as the blocks placed it means it already placed the last one
-
-                if(count.get() == ticks){
-                    infoList.addAll(blockInfoList);
-                }
+            for(int j = 0; j<blocks_per_tick; j++){
                 if(infoList.isEmpty()){
-                    count.set(-1);
-                    return;
+                    return false;
+                }
+                StructureTemplate.StructureBlockInfo info;
+                if(rand){
+                    int i;
+                    if(infoList.size()-1 == 0){
+                        i = 0;
+                    } else{
+                        i = this.world.getRandom().nextInt(infoList.size()-1);
+                    }
+                    info = infoList.get(i);
+                    infoList.remove(i);
+                }else{
+                    info = infoList.get(ticks - startDelayTicks);
                 }
 
-                for(int j = 0; j<blocks_per_tick; j++){
-                    if(infoList.isEmpty()){
-                        count.set(-1);
-                        return;
-                    }
-                    StructureTemplate.StructureBlockInfo info;
-                    if(rand){
-                        int i;
-                        if(infoList.size()-1 == 0){
-                            i = 0;
-                        } else{
-                            i = this.world.getRandom().nextInt(infoList.size()-1);
-                        }
-                        info = infoList.get(i);
-                        infoList.remove(i);
-                    }else{
-                        info = infoList.get(count.get() - ticks);
-                    }
+                world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
 
-                    world.setBlock(info.pos(), info.state(), Block.UPDATE_ALL);
-
-                    if (info.nbt() != null) {
-                        //The blockentities check needs to be done on the main thread
-                        server.execute( () -> {
-                            BlockEntity blockEntity = world.getBlockEntity(info.pos());
-                            if (blockEntity != null) {
-                                if (blockEntity instanceof RandomizableContainerBlockEntity) {
-                                    info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
-                                }
-                                blockEntity.load(info.nbt());
+                if (info.nbt() != null) {
+                    //The block entities check needs to be done on the main thread
+                    server.execute( () -> {
+                        BlockEntity blockEntity = world.getBlockEntity(info.pos());
+                        if (blockEntity != null) {
+                            if (blockEntity instanceof RandomizableContainerBlockEntity) {
+                                info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                             }
-                        });
-                    }
+                            blockEntity.load(info.nbt());
+                        }
+                    });
                 }
-
-
             }
-            count.getAndIncrement();
-        }));
+            return true;
+        });
         infoList.clear();
     }
 
@@ -567,5 +544,68 @@ public class StructurePlacerAPI {
         blockReplacedCheck = targets;
         actOnBlockReplacedByStructure = true;
         onBlockReplacedByStructure = action;
+    }
+    /**Used to schedule the replacements*/
+    public static final class ServerTaskScheduler {
+
+        private static final List<ScheduledTask> TASKS = new ArrayList<>();
+
+        public static void schedule(ScheduledTask task) {
+            TASKS.add(task);
+        }
+
+        public static void tick(MinecraftServer server) {
+            TASKS.removeIf(task -> !task.tick(server));
+        }
+    }
+
+    public interface ScheduledTask {
+        boolean tick(MinecraftServer server);
+    }
+
+    // Subscribe
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        ServerTaskScheduler.tick(event.getServer());
+    }
+
+    //Called from any function at any time
+    public static void runLater(int delayTicks, ServerRunnable action) {
+        ServerTaskScheduler.schedule(new ScheduledTask() {
+            int ticks = delayTicks;
+
+            @Override
+            public boolean tick(MinecraftServer server) {
+                if (--ticks <= 0) {
+                    action.run(server);
+                    return false; // remove task
+                }
+                return true;
+            }
+        });
+    }
+
+    //Called from any function at any time
+
+    /**Runs an action every tick and provides the tick count with an optional start delay.
+     * If the action lambda returns a falls the task is stopepd
+     */
+    public static void runEveryTick(ServerTickRunnable action) {
+        ServerTaskScheduler.schedule(new ScheduledTask() {
+            int ticks = 0;
+            List<StructureTemplate.StructureBlockInfo> infoList = new ArrayList<>();
+
+            @Override
+            public boolean tick(MinecraftServer server) {
+                boolean keepgoing = action.run(server, ticks);
+                ticks++;
+                //if the task is taking more than an hour just kill it
+                if (ticks >= 20*3600) {
+                    LOGGER.warn("A task has taken more than an hour to complete, it has now been terminated");
+                    return false; // remove task
+                }
+                return keepgoing;
+            }
+        });
     }
 }
