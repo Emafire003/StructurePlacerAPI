@@ -239,7 +239,6 @@ public class StructurePlacerAPI {
      * if you want to do it. This method however consumes less resources.
      */
     public boolean loadStructure() {
-        LOGGER.error("trying to place structure: " + templateName);
         return loadAndRestoreStructureAnimated(-1, -1, false);
     }
 
@@ -293,7 +292,6 @@ public class StructurePlacerAPI {
                     scheduleReplacement(restore_ticks, saveFromWorld(this.world, this.blockPos.offset(this.offset), size));
                 }
             }
-            LOGGER.error("placing: " + templateName);
             return optional.isPresent() && this.place(optional.get());
         } else {
             return false;
@@ -304,7 +302,6 @@ public class StructurePlacerAPI {
      * which already checks if the structure exists or not, so use that instead*/
     private boolean place(StructureTemplate template) {
         try {
-            LOGGER.info("placing structure!");
             StructurePlaceSettings structurePlacementData = (new StructurePlaceSettings()).setMirror(this.mirror).setRotation(this.rotation).setIgnoreEntities(this.ignoreEntities);
             if (this.integrity < 1.0F) {
                 structurePlacementData.clearProcessors().addProcessor(new BlockRotProcessor(Mth.clamp(this.integrity, 0.0F, 1.0F))).setRandom(createRandom(this.world.getSeed()));
@@ -324,7 +321,6 @@ public class StructurePlacerAPI {
             ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockPlacedCheck(blockPlacedCheck);
             ((ICustomStructureTemplate) template).structurePlacerAPI$setBlockReplacedCheck(blockReplacedCheck);
 
-            LOGGER.info("placing in world. The to string is: \n" + this.toString());
             template.placeInWorld(world, pos, pos, structurePlacementData, createRandom(this.world.getSeed()), 2);
             unloadStructure();
             return true;
