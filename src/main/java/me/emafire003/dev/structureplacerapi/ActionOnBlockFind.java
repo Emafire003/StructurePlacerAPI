@@ -4,5 +4,5 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.level.ServerLevelAccessor;
 
 public interface ActionOnBlockFind {
-    void action(StructureTemplate.StructureBlockInfo info, ServerLevelAccessor world);
+    StructureTemplate.StructureBlockInfo action(StructureTemplate.StructureBlockInfo info, ServerLevelAccessor world);
 }
