@@ -7,15 +7,15 @@ import com.llamalad7.mixinextras.sugar.Local;
 import me.emafire003.dev.structureplacerapi.ActionOnBlockFind;
 import me.emafire003.dev.structureplacerapi.ICustomStructureTemplate;
 import me.emafire003.dev.structureplacerapi.StructurePlacerAPI;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.ErrorReporter;
-import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.ServerLevelAccessor;
 import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -169,10 +169,12 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     }
 
 
-    @Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
+    // TODO(Ravel): remapper for com.llamalad7.mixinextras.expression.Expression is not implemented
+// TODO(Ravel): remapper for com.llamalad7.mixinextras.expression.Expression is not implemented
+    @Definition(id = "process", method = "Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;)Ljava/util/List;")
     @Expression("process(?,?,?,?,?)")
-    @ModifyExpressionValue(method = "place", at = @At("MIXINEXTRAS:EXPRESSION"))
-    public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerWorldAccess world){
+    @ModifyExpressionValue(method = "placeInWorld", at = @At("MIXINEXTRAS:EXPRESSION"))
+    public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerLevelAccessor world){
         if(isCustomStructureTemplate){
 
             List<StructureTemplate.StructureBlockInfo> filteredInfos = new ArrayList<>();
@@ -181,7 +183,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
 
                 /// Block action checks things
                 // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
-                if(actOnBlockStructurePlacing && structureBlockInfo.state().isIn(blockPlacedCheck)){
+                if(actOnBlockStructurePlacing && structureBlockInfo.state().is(blockPlacedCheck)){
                     if(onBlockPlacingInStructure == null){
                         StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
                     }else{
@@ -189,7 +191,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     }
                 }
                 // Checks if there is a potential action to be executed when the block from the world is about to be replaced by the one from the structure
-                if(actOnBlockReplacedByStructure && defaultState.isIn(blockReplacedCheck)){
+                if(actOnBlockReplacedByStructure && defaultState.is(blockReplacedCheck)){
                     if(onBlockReplacedByStructure == null){
                         StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
                     }else{
@@ -199,33 +201,33 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
 
                 /// Prevent block replacements
                 //If we only have to replace tagged blocks, if the block found isn't tagged we should keep it along with its nbt data
-                if(onlyReplaceTaggedBlocks && taggedBlocks != null && !defaultState.isIn(taggedBlocks)){
+                if(onlyReplaceTaggedBlocks && taggedBlocks != null && !defaultState.is(taggedBlocks)){
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        NbtWriteView nbtWriteView = NbtWriteView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER), world.getRegistryManager());
-                        blockEntity.writeDataWithId(nbtWriteView);
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.getNbt());
+                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
+                        blockEntity.saveWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
                     filteredInfos.add(info);
                 }
                 //if the block found has a tag we should keep it along with its nbt
-                else if(preventReplacementOfTagBlocks && taggedBlocks != null && defaultState.isIn(taggedBlocks)){
+                else if(preventReplacementOfTagBlocks && taggedBlocks != null && defaultState.is(taggedBlocks)){
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        NbtWriteView nbtWriteView = NbtWriteView.create(new ErrorReporter.Logging(StructurePlacerAPI.LOGGER), world.getRegistryManager());
-                        blockEntity.writeDataWithId(nbtWriteView);
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.getNbt());
+                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
+                        blockEntity.saveWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
                     filteredInfos.add(info);
                 }
                 //If replace bedrock (or barriers) is false, it means that if we find bedrock it should remain there
-                else if((!replaceBedrock && defaultState.isOf(Blocks.BEDROCK)) || (!replaceBarrier && defaultState.isOf(Blocks.BARRIER))){
+                else if((!replaceBedrock && defaultState.is(Blocks.BEDROCK)) || (!replaceBarrier && defaultState.is(Blocks.BARRIER))){
                     filteredInfos.add(new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null));
                 }
                 else{
