@@ -527,7 +527,9 @@ public class StructurePlacerAPI {
         this.taggedBlocks = taggedBlocks;
     }
 
-    /** Performs an action while placing a block with a tag, from the saved structure file
+    /** Performs an action while placing a block with a tag, from the saved structure file. You can return a different
+     * structureBlockInfo if you need to modify the block being placed. If you don't need this feature, return the given
+     * parameter.
      * <p>
      * For example, a structure that has a fence inside of it will have an action that spawns a rabbit on top of it*/
     public void actionOnBlocksPlacedByStructure(ActionOnBlockFind action, TagKey<Block> targets){
@@ -536,7 +538,9 @@ public class StructurePlacerAPI {
         onBlockPlacingInStructure = action;
     }
 
-    /** Performs an action while a block with a tag in the world gets replaced by one from the structure file
+    /** Performs an action while a block with a tag in the world gets replaced by one from the structure file.
+     * You can return a different structureBlockInfo if you need to modify the block being placed.
+     * If you don't need this feature, return the given parameter.
      * <p>
      * For example, in the world there is snow block that will be replaced by the structure,
      * will have an action that spawn a snowgolem on top of it*/

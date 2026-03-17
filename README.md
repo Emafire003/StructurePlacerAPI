@@ -15,6 +15,8 @@ repositories {
 
 dependencies {
     modImplementation "maven.modrinth:structureplacerapi:<version>"
+    //on (Neo)Forge and  from 26.1 onwards:
+    implementation "maven.modrinth:structureplacerapi:<version>"
 }
 ```
 If you want you can `include` the API in your jar file by adding only the `include` string:
@@ -32,6 +34,7 @@ repositories {
 dependencies {
     modImplementation "maven.modrinth:structureplacerapi:<version>"
     include "maven.modrinth:structureplacerapi:<version>"
+    //for neoforge use the jar-in-jar thingy
 }
 ```
 It's only 20 kb!
