@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "me.emafire003.dev.structureplacerapi.mixin",
+  "refmap": "structureplacerapi.refmap.json",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
     "CustomStructureTemplateMixin"

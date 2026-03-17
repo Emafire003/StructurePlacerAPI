@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import org.spongepowered.asm.mixin.Debug;
+import net.minecraft.world.level.ServerLevelAccessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import java.util.ArrayList;
 import java.util.List;
 
-@Debug(export = true)
 @Mixin(StructureTemplate.class)
 public abstract class CustomStructureTemplateMixin implements ICustomStructureTemplate {
 
@@ -176,21 +175,27 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
             original.forEach( structureBlockInfo -> {
                 BlockState defaultState = world.getBlockState(structureBlockInfo.pos());
 
+                boolean addedWithAction = false;
                 /// Block action checks things
                 // Checks if there is a potential action to be executed when a block from the saved structure is about to get placed
                 if(structurePlacerAPI$actOnBlockStructurePlacing && structureBlockInfo.state().is(structurePlacerAPI$blockPlacedCheck)){
                     if(structurePlacerAPI$onBlockPlacingInStructure == null){
                         StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
                     }else{
-                        structurePlacerAPI$onBlockPlacingInStructure.action(structureBlockInfo, world);
+                        StructureTemplate.StructureBlockInfo structureBlockInfoNew = structurePlacerAPI$onBlockPlacingInStructure.action(structureBlockInfo, world);
+                        filteredInfos.add(structureBlockInfoNew); //If this block is replacing something that it shouldn't,
+                        // it should still get overridden by the new info generated below, since they have same position
+                        addedWithAction = true;
                     }
                 }
                 // Checks if there is a potential action to be executed when the block from the world is about to be replaced by the one from the structure
                 if(structurePlacerAPI$actOnBlockReplacedByStructure && defaultState.is(structurePlacerAPI$blockReplacedCheck)){
                     if(structurePlacerAPI$onBlockReplacedByStructure == null){
-                        StructurePlacerAPI.LOGGER.error("The action to perform on block-placing is null!");
+                        StructurePlacerAPI.LOGGER.error("The action to perform on block-replacing is null!");
                     }else{
-                        structurePlacerAPI$onBlockReplacedByStructure.action(structureBlockInfo, world);
+                        StructureTemplate.StructureBlockInfo structureBlockInfoNew = structurePlacerAPI$onBlockReplacedByStructure.action(structureBlockInfo, world);
+                        filteredInfos.add(structureBlockInfoNew);
+                        addedWithAction = true;
                     }
                 }
 
@@ -221,7 +226,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                 else if((!structurePlacerAPI$replaceBedrock && defaultState.is(Blocks.BEDROCK)) || (!structurePlacerAPI$replaceBarrier && defaultState.is(Blocks.BARRIER))){
                     filteredInfos.add(new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null));
                 }
-                else{
+                else if(!addedWithAction){
                     filteredInfos.add(structureBlockInfo);
                 }
 
