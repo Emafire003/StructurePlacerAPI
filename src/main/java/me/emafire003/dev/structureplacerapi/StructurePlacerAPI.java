@@ -39,15 +39,15 @@ import java.util.Optional;
 @SuppressWarnings("unused")
 public class StructurePlacerAPI {
 
-    private WorldGenLevel world = null;
-    private ResourceLocation templateName = null;
-    private BlockPos blockPos = null;
-    private Mirror mirror = null;
-    private Rotation rotation = null;
-    private boolean ignoreEntities = false;
-    private float integrity = 1;
-    private BlockPos offset = null;
-    private Vec3i size = Vec3i.ZERO;
+    public WorldGenLevel world = null;
+    public ResourceLocation templateName = null;
+    public BlockPos blockPos = null;
+    public Mirror mirror = null;
+    public Rotation rotation = null;
+    public boolean ignoreEntities = false;
+    public float integrity = 1;
+    public BlockPos offset = null;
+    public Vec3i size = Vec3i.ZERO;
 
     protected boolean replaceBedrock = false;
     protected boolean replaceBarrier = false;
