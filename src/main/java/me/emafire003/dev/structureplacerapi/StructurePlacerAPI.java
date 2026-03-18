@@ -1,9 +1,9 @@
 package me.emafire003.dev.structureplacerapi;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.IdentifierException;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ProblemReporter;
+import net.minecraft.ResourceLocationException;
+import net.minecraft.Util;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -12,8 +12,6 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.Container;
 import net.minecraft.tags.TagKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.storage.TagValueInput;
-import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
@@ -39,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StructurePlacerAPI {
 
     public final WorldGenLevel world;
-    public final Identifier templateName;
+    public final ResourceLocation templateName;
     public final BlockPos blockPos;
     public final Mirror mirror;
     public final Rotation rotation;
@@ -77,7 +75,7 @@ public class StructurePlacerAPI {
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, Mirror mirror, Rotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror, Rotation rotation, boolean ignoreEntities, float integrity, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -96,7 +94,7 @@ public class StructurePlacerAPI {
      * @param templateName The identifier of the structure to place, like <code>new Identifier(MOD_ID, structure_name)</code>
      * @param blockPos The position of the structure
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos) {
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos) {
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -116,7 +114,7 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param offset Use this to offset the placing of the structure.
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, BlockPos offset){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, BlockPos offset){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -136,7 +134,7 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, Mirror mirror){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -156,7 +154,7 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, Rotation rotation){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Rotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -177,7 +175,7 @@ public class StructurePlacerAPI {
      * @param mirror Use this to mirror the structure using <code>BlockMirror.#</code>
      * @param rotation Use this to rotate the structure using <code>BlockRotation.#</code>
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, Mirror mirror, Rotation rotation){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, Mirror mirror, Rotation rotation){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -197,7 +195,7 @@ public class StructurePlacerAPI {
      * @param blockPos The position of the structure
      * @param integrity Set this to a value between 0f and 1f to remove some blocks from the placed structure. (All blocks = 1f)
      * */
-    public StructurePlacerAPI(WorldGenLevel world, Identifier templateName, BlockPos blockPos, float integrity){
+    public StructurePlacerAPI(WorldGenLevel world, ResourceLocation templateName, BlockPos blockPos, float integrity){
         this.world = world;
         this.templateName = templateName;
         this.blockPos = blockPos;
@@ -219,7 +217,7 @@ public class StructurePlacerAPI {
     /** Returns the copy of a structure that you are going to be loading later,
      * in order to get its size and other info
      */
-    public static Optional<StructureTemplate> getTemplatePreview(ServerLevel world, Identifier templateName){
+    public static Optional<StructureTemplate> getTemplatePreview(ServerLevel world, ResourceLocation templateName){
         StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
         return structureTemplateManager.get(templateName);
     }
@@ -227,7 +225,7 @@ public class StructurePlacerAPI {
     /** Returns the copy of a structure that you are going to be loading later,
      * in order to get its size and other info
      */
-    public static Optional<StructureTemplate> getTemplatePreview(WorldGenLevel world, Identifier templateName){
+    public static Optional<StructureTemplate> getTemplatePreview(WorldGenLevel world, ResourceLocation templateName){
         StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureManager();
         return structureTemplateManager.get(templateName);
     }
@@ -281,7 +279,7 @@ public class StructurePlacerAPI {
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.get(this.templateName);
-            } catch (IdentifierException var6) {
+            } catch (ResourceLocationException var6) {
                 return false;
             }
             optional.ifPresent(structureTemplate -> this.size = structureTemplate.getSize());
@@ -373,7 +371,7 @@ public class StructurePlacerAPI {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                                 }
 
-                                blockEntity.loadWithComponents(TagValueInput.create(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER).forChild(blockEntity.problemPath()), world.registryAccess(), info.nbt()));
+                                blockEntity.loadWithComponents(info.nbt(), world.registryAccess());
                             }
                         });
                     }
@@ -449,7 +447,7 @@ public class StructurePlacerAPI {
                                 if (blockEntity instanceof RandomizableContainerBlockEntity) {
                                     info.nbt().putLong("LootTableSeed", Objects.requireNonNull(blockEntity.getLevel()).getRandom().nextLong());
                                 }
-                                blockEntity.loadWithComponents(TagValueInput.create(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER).forChild(blockEntity.problemPath()), world.registryAccess(), info.nbt()));
+                                blockEntity.loadWithComponents(info.nbt(), world.registryAccess());
                             }
                         });
                     }
@@ -490,9 +488,7 @@ public class StructurePlacerAPI {
                         if(has_inventory){
                             structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);
                         }else{
-                            TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
-                            blockEntity.saveWithId(nbtWriteView);
-                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), nbtWriteView.buildResult());
+                            structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), blockEntity.saveWithId(world.registryAccess()));
                         }
                     } else {
                         structureBlockInfo = new StructureTemplate.StructureBlockInfo(save_pos, world.getBlockState(save_pos), null);

@@ -12,9 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.ServerLevelAccessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -167,7 +165,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     }
 
 
-    @Definition(id = "process", method = "Lnet/minecraft/structure/StructureTemplate;process(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/structure/StructurePlacementData;Ljava/util/List;)Ljava/util/List;")
+    @Definition(id = "process", method = "Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;)Ljava/util/List;")
     @Expression("process(?,?,?,?,?)")
     @ModifyExpressionValue(method = "placeInWorld", at = @At("MIXINEXTRAS:EXPRESSION"))
     public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerLevelAccessor world){
@@ -207,9 +205,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
-                        blockEntity.saveWithId(nbtWriteView);
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.saveWithId(world.registryAccess()));
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
@@ -220,9 +216,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
-                        blockEntity.saveWithId(nbtWriteView);
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.saveWithId(world.registryAccess()));
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
