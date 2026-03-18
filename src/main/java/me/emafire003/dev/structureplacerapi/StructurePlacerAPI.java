@@ -38,15 +38,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("unused")
 public class StructurePlacerAPI {
 
-    private final WorldGenLevel world;
-    private final Identifier templateName;
-    private final BlockPos blockPos;
-    private final Mirror mirror;
-    private final Rotation rotation;
-    private final boolean ignoreEntities;
-    private final float integrity;
-    private final BlockPos offset;
-    private Vec3i size = Vec3i.ZERO;
+    public final WorldGenLevel world;
+    public final Identifier templateName;
+    public final BlockPos blockPos;
+    public final Mirror mirror;
+    public final Rotation rotation;
+    public final boolean ignoreEntities;
+    public final float integrity;
+    public final BlockPos offset;
+    public Vec3i size = Vec3i.ZERO;
 
     protected boolean replaceBedrock = false;
     protected boolean replaceBarrier = false;
