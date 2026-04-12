@@ -2,12 +2,14 @@
   "required": true,
   "package": "me.emafire003.dev.structureplacerapi.mixin",
   "refmap": "structureplacerapi.refmap.json",
-  "compatibilityLevel": "JAVA_16",
+  "compatibilityLevel": "JAVA_25",
   "mixins": [
     "CustomStructureTemplateMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
-  "mixinextras": {"minVersion": "0.5.0"}
+  "overwrites": {
+    "requireAnnotations": true
+  }
 }
