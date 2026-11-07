@@ -212,7 +212,7 @@ public class StructurePlacerAPI {
      * From this, you can get its size and other useful stuff
      */
     public Optional<StructureTemplate> getTemplate(){
-        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureManager();
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
         return structureTemplateManager.get(this.templateName);
     }
 
@@ -220,7 +220,7 @@ public class StructurePlacerAPI {
      * in order to get its size and other info
      */
     public static Optional<StructureTemplate> getTemplatePreview(ServerLevel world, Identifier templateName){
-        StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
+        StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
         return structureTemplateManager.get(templateName);
     }
 
@@ -228,7 +228,7 @@ public class StructurePlacerAPI {
      * in order to get its size and other info
      */
     public static Optional<StructureTemplate> getTemplatePreview(WorldGenLevel world, Identifier templateName){
-        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureManager();
+        StructureTemplateManager structureTemplateManager = Objects.requireNonNull(world.getServer()).getStructureTemplateManager();
         return structureTemplateManager.get(templateName);
     }
 
@@ -277,7 +277,7 @@ public class StructurePlacerAPI {
      */
     public boolean loadAndRestoreStructureAnimated(int restore_ticks, int blocks_per_tick, boolean random) {
         if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             Optional<StructureTemplate> optional;
             try {
                 optional = structureTemplateManager.get(this.templateName);
@@ -335,7 +335,7 @@ public class StructurePlacerAPI {
      * No need to use it on your own, included during placement*/
     private void unloadStructure() {
         if (this.templateName != null && world.getServer() != null) {
-            StructureTemplateManager structureTemplateManager = world.getServer().getStructureManager();
+            StructureTemplateManager structureTemplateManager = world.getServer().getStructureTemplateManager();
             structureTemplateManager.remove(this.templateName);
         }
     }
