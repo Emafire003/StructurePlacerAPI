@@ -8,13 +8,14 @@ import me.emafire003.dev.structureplacerapi.ActionOnBlockFind;
 import me.emafire003.dev.structureplacerapi.ICustomStructureTemplate;
 import me.emafire003.dev.structureplacerapi.StructurePlacerAPI;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -168,7 +169,7 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
     @Definition(id = "processBlockInfos", method = "Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;)Ljava/util/List;")
     @Expression("processBlockInfos(?,?,?,?,?,?)")
     @ModifyExpressionValue(method = "placeInWorld", at = @At("MIXINEXTRAS:EXPRESSION"))
-    public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true) ServerLevelAccessor world){
+    public List<StructureTemplate.StructureBlockInfo> modifyPlace(List<StructureTemplate.StructureBlockInfo> original, @Local(argsOnly = true, name = "level") ServerLevelAccessor world){
         if(structurePlacerAPI$isCustomStructureTemplate){
 
             List<StructureTemplate.StructureBlockInfo> filteredInfos = new ArrayList<>();
@@ -205,7 +206,9 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.saveWithId(world.registryAccess()));
+                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
+                        blockEntity.saveWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
@@ -216,7 +219,9 @@ public abstract class CustomStructureTemplateMixin implements ICustomStructureTe
                     BlockEntity blockEntity = world.getBlockEntity(structureBlockInfo.pos());
                     StructureTemplate.StructureBlockInfo info;
                     if (blockEntity != null) {
-                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, blockEntity.saveWithId(world.registryAccess()));
+                        TagValueOutput nbtWriteView = TagValueOutput.createWithContext(new ProblemReporter.ScopedCollector(StructurePlacerAPI.LOGGER), world.registryAccess());
+                        blockEntity.saveWithId(nbtWriteView);
+                        info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, nbtWriteView.buildResult());
                     } else {
                         info = new StructureTemplate.StructureBlockInfo(structureBlockInfo.pos(), defaultState, null);
                     }
